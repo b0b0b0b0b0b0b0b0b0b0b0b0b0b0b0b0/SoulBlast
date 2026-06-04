@@ -30,17 +30,8 @@ public final class PsBlockStore {
             return state;
         }
         states.remove(state.key());
-        PsBlockState aligned = new PsBlockState(
-                PsBlockKey.of(world, state.key().x(), state.key().y(), state.key().z()),
-                state.typeAlias(),
-                state.durability(),
-                state.maximum(),
-                state.ownerName(),
-                state.ownerPrefix(),
-                state.ownerSuffix(),
-                state.radiusX(),
-                state.radiusY(),
-                state.radiusZ()
+        PsBlockState aligned = state.withKey(
+                PsBlockKey.of(world, state.key().x(), state.key().y(), state.key().z())
         );
         states.put(aligned.key(), aligned);
         return aligned;

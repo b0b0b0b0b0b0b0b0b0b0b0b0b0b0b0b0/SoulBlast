@@ -8,7 +8,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 
 import java.util.Map;
@@ -23,7 +22,10 @@ public final class PsHologramService {
             PsBlockState state,
             PsProtectionTypeDefinition type
     ) {
-        if (world == null || type == null) {
+        if (world == null || type == null || state == null || state.hologramHidden()) {
+            if (state != null) {
+                remove(state.key());
+            }
             return;
         }
         PsHologramTypeSettings hologram = type.hologram;
@@ -36,16 +38,16 @@ public final class PsHologramService {
             spawned.text(LegacyComponentSerializer.legacyAmpersand().deserialize(
                     PsPlaceholderResolver.joinLines(hologram.lines, state)
             ));
-            spawned.setBillboard(Display.Billboard.CENTER);
-            spawned.setSeeThrough(true);
-            spawned.setShadowed(true);
-            spawned.setPersistent(false);
+            PsTextDisplayConfigurer.apply(spawned, hologram);
         });
         displays.put(state.key(), display);
     }
 
     public void refresh(PsBlockState state, PsProtectionTypeDefinition type) {
-        if (state == null || type == null || !type.hologram.enabled) {
+        if (state == null || type == null || state.hologramHidden() || !type.hologram.enabled) {
+            if (state != null && state.hologramHidden()) {
+                remove(state.key());
+            }
             return;
         }
         TextDisplay display = displays.get(state.key());
@@ -56,13 +58,15 @@ public final class PsHologramService {
             }
             return;
         }
+        PsHologramTypeSettings hologram = type.hologram;
         display.text(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                PsPlaceholderResolver.joinLines(type.hologram.lines, state)
+                PsPlaceholderResolver.joinLines(hologram.lines, state)
         ));
+        PsTextDisplayConfigurer.apply(display, hologram);
         Location target = new Location(
                 display.getWorld(),
                 state.key().x() + 0.5,
-                state.key().y() + type.hologram.offsetY,
+                state.key().y() + hologram.offsetY,
                 state.key().z() + 0.5
         );
         display.teleport(target);

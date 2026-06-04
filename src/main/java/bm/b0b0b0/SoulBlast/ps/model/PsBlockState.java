@@ -1,5 +1,7 @@
 package bm.b0b0b0.SoulBlast.ps.model;
 
+import java.util.UUID;
+
 public final class PsBlockState {
 
     private final PsBlockKey key;
@@ -9,9 +11,11 @@ public final class PsBlockState {
     private String ownerName;
     private String ownerPrefix;
     private String ownerSuffix;
+    private UUID ownerId;
     private int radiusX;
     private int radiusY;
     private int radiusZ;
+    private boolean hologramHidden;
 
     public PsBlockState(
             PsBlockKey key,
@@ -25,6 +29,36 @@ public final class PsBlockState {
             int radiusY,
             int radiusZ
     ) {
+        this(
+                key,
+                typeAlias,
+                durability,
+                maximum,
+                ownerName,
+                ownerPrefix,
+                ownerSuffix,
+                null,
+                radiusX,
+                radiusY,
+                radiusZ,
+                false
+        );
+    }
+
+    public PsBlockState(
+            PsBlockKey key,
+            String typeAlias,
+            int durability,
+            int maximum,
+            String ownerName,
+            String ownerPrefix,
+            String ownerSuffix,
+            UUID ownerId,
+            int radiusX,
+            int radiusY,
+            int radiusZ,
+            boolean hologramHidden
+    ) {
         this.key = key;
         this.typeAlias = typeAlias;
         this.durability = durability;
@@ -32,9 +66,11 @@ public final class PsBlockState {
         this.ownerName = ownerName;
         this.ownerPrefix = ownerPrefix;
         this.ownerSuffix = ownerSuffix;
+        this.ownerId = ownerId;
         this.radiusX = radiusX;
         this.radiusY = radiusY;
         this.radiusZ = radiusZ;
+        this.hologramHidden = hologramHidden;
     }
 
     public PsBlockKey key() {
@@ -65,6 +101,10 @@ public final class PsBlockState {
         return ownerSuffix;
     }
 
+    public UUID ownerId() {
+        return ownerId;
+    }
+
     public int radiusX() {
         return radiusX;
     }
@@ -75,6 +115,10 @@ public final class PsBlockState {
 
     public int radiusZ() {
         return radiusZ;
+    }
+
+    public boolean hologramHidden() {
+        return hologramHidden;
     }
 
     public void applyDamage(int amount) {
@@ -94,6 +138,12 @@ public final class PsBlockState {
         this.ownerSuffix = ownerSuffix;
     }
 
+    public void updateOwnerId(UUID ownerId) {
+        if (ownerId != null) {
+            this.ownerId = ownerId;
+        }
+    }
+
     public void updateRadii(int radiusX, int radiusY, int radiusZ) {
         this.radiusX = radiusX;
         this.radiusY = radiusY;
@@ -104,6 +154,27 @@ public final class PsBlockState {
         if (typeAlias != null && !typeAlias.isBlank()) {
             this.typeAlias = typeAlias;
         }
+    }
+
+    public void setHologramHidden(boolean hologramHidden) {
+        this.hologramHidden = hologramHidden;
+    }
+
+    public PsBlockState withKey(PsBlockKey newKey) {
+        return new PsBlockState(
+                newKey,
+                typeAlias,
+                durability,
+                maximum,
+                ownerName,
+                ownerPrefix,
+                ownerSuffix,
+                ownerId,
+                radiusX,
+                radiusY,
+                radiusZ,
+                hologramHidden
+        );
     }
 
 }

@@ -345,12 +345,14 @@ public final class PsExplosionBridge {
                 snapshot.get().ownerName(),
                 "",
                 "",
+                snapshot.get().ownerId(),
                 snapshot.get().radiusX(),
                 snapshot.get().radiusY(),
-                snapshot.get().radiusZ()
+                snapshot.get().radiusZ(),
+                false
         );
         store.put(state);
-        if (block.getWorld() != null) {
+        if (block.getWorld() != null && !state.hologramHidden()) {
             holograms.attach(block.getWorld(), state, type);
         }
         if (persistence != null) {

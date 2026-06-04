@@ -473,6 +473,9 @@ public final class SoulBlast extends JavaPlugin {
         if (decayBlocks != null && decayModule != null) {
             decayBlocks.setExecutor(new DecayBlocksCommand(decayModule, messageService));
         }
+        if (psModule != null) {
+            psModule.registerCommands(messageService);
+        }
     }
 
     private void registerListeners() {
@@ -573,6 +576,10 @@ public final class SoulBlast extends JavaPlugin {
 
     public PsModule getPsModule() {
         return psModule;
+    }
+
+    public MessageService messageService() {
+        return messageService;
     }
 
     public boolean regionProtectionReady() {

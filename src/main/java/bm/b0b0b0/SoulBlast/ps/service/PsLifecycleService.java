@@ -90,9 +90,11 @@ public final class PsLifecycleService {
                 ownerName,
                 meta.prefix(),
                 meta.suffix(),
+                ownerId,
                 snapshot.radiusX(),
                 snapshot.radiusY(),
-                snapshot.radiusZ()
+                snapshot.radiusZ(),
+                false
         );
         store.put(state);
         if (persistence != null) {

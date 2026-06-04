@@ -153,7 +153,9 @@ public final class PsRegionRestoreService {
         }
         alignWorldId(state, resolved.getWorld());
         refreshSnapshotMeta(state, resolved);
-        holograms.attach(resolved.getWorld(), state, type.get());
+        if (!state.hologramHidden()) {
+            holograms.attach(resolved.getWorld(), state, type.get());
+        }
         return true;
     }
 
@@ -161,17 +163,8 @@ public final class PsRegionRestoreService {
         if (world == null || state.key().worldId().equals(world.getUID())) {
             return;
         }
-        PsBlockState realigned = new PsBlockState(
-                PsBlockKey.of(world, state.key().x(), state.key().y(), state.key().z()),
-                state.typeAlias(),
-                state.durability(),
-                state.maximum(),
-                state.ownerName(),
-                state.ownerPrefix(),
-                state.ownerSuffix(),
-                state.radiusX(),
-                state.radiusY(),
-                state.radiusZ()
+        PsBlockState realigned = state.withKey(
+                PsBlockKey.of(world, state.key().x(), state.key().y(), state.key().z())
         );
         store.remove(state.key());
         persistence.removeState(state.key());
@@ -221,14 +214,18 @@ public final class PsRegionRestoreService {
                         ownerName,
                         meta.prefix(),
                         meta.suffix(),
+                        snapshot.get().ownerId(),
                         snapshot.get().radiusX(),
                         snapshot.get().radiusY(),
-                        snapshot.get().radiusZ()
+                        snapshot.get().radiusZ(),
+                        false
                 );
                 store.put(state);
                 persistence.saveState(state);
                 ensureChunkLoaded(world, key);
-                holograms.attach(world, state, definition);
+                if (!state.hologramHidden()) {
+                    holograms.attach(world, state, definition);
+                }
                 count++;
             }
         }
@@ -257,6 +254,7 @@ public final class PsRegionRestoreService {
             }
             UUID ownerId = snapshot.ownerId();
             if (ownerId != null) {
+                state.updateOwnerId(ownerId);
                 luckPerms.resolve(ownerId).ifPresent(meta ->
                         state.updateOwnerMeta(
                                 ownerName == null || "?".equals(ownerName) ? state.ownerName() : ownerName,

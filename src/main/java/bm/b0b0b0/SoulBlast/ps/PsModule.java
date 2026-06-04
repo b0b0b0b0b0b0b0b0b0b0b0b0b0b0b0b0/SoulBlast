@@ -11,6 +11,9 @@ import bm.b0b0b0.SoulBlast.ps.config.PsSettingsFileConfig;
 import bm.b0b0b0.SoulBlast.ps.integration.LuckPermsBridge;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
 import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
+import bm.b0b0b0.SoulBlast.message.MessageService;
+import bm.b0b0b0.SoulBlast.ps.command.PsHologramCommand;
+import bm.b0b0b0.SoulBlast.ps.listener.PsHologramHideListener;
 import bm.b0b0b0.SoulBlast.ps.listener.PsEventRegistrar;
 import bm.b0b0b0.SoulBlast.ps.listener.PsRegionRestoreListener;
 import bm.b0b0b0.SoulBlast.ps.listener.PsLifecycleListener;
@@ -27,7 +30,9 @@ import bm.b0b0b0.SoulBlast.ps.service.PsExplosionBridge;
 import bm.b0b0b0.SoulBlast.config.RegionProtectionSettings;
 import bm.b0b0b0.SoulBlast.service.region.PsDynamiteRaidBypass;
 import bm.b0b0b0.SoulBlast.service.region.RegionBackend;
+import bm.b0b0b0.SoulBlast.ps.service.PsHologramHideSession;
 import bm.b0b0b0.SoulBlast.ps.service.PsHologramService;
+import bm.b0b0b0.SoulBlast.ps.service.PsHologramVisibilityService;
 import bm.b0b0b0.SoulBlast.ps.service.PsLifecycleService;
 import bm.b0b0b0.SoulBlast.ps.service.PsDebugLog;
 import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
@@ -37,6 +42,7 @@ import bm.b0b0b0.SoulBlast.ps.service.PsTypesMerger;
 import bm.b0b0b0.SoulBlast.ps.service.PsWitherBreakService;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 
@@ -52,8 +58,10 @@ public final class PsModule {
     private PsBlockPersistence blockPersistence;
     private PsTypesDirectory typesDirectory;
     private final PsHologramService holograms = new PsHologramService();
+    private final PsHologramHideSession hologramHideSession = new PsHologramHideSession();
 
     private PsSettings settings = new PsSettings();
+    private PsHologramVisibilityService hologramVisibilityService;
     private ProtectionStonesBridge protectionStones;
     private LuckPermsBridge luckPerms;
     private PsTypeRegistry typeRegistry;
@@ -68,6 +76,7 @@ public final class PsModule {
     private Listener itemGlowListener;
     private Listener soulblastWgOverrideListener;
     private Listener regionRestoreListener;
+    private Listener hologramHideListener;
     private boolean listenersRegistered;
     private boolean integrationEnabled;
     private int configuredTypeCount;
@@ -157,6 +166,13 @@ public final class PsModule {
             blockPersistence = new PsBlockPersistence(plugin, configLoader);
         }
         blockPersistence.loadInto(store);
+        hologramVisibilityService = new PsHologramVisibilityService(
+                protectionStones,
+                typeRegistry,
+                store,
+                holograms,
+                blockPersistence
+        );
         PsDebugLog debugLog = new PsDebugLog(plugin, settings);
         durabilityTrace = new PsDurabilityTrace(plugin, settings);
         debugLog.logReload(protectionStones, loadedTypes, newlyWritten);
@@ -312,6 +328,28 @@ public final class PsModule {
         return settings.silentStartup;
     }
 
+    public PsSettings settings() {
+        return settings;
+    }
+
+    public PsHologramHideSession hologramHideSession() {
+        return hologramHideSession;
+    }
+
+    public PsHologramVisibilityService hologramVisibilityService() {
+        return hologramVisibilityService;
+    }
+
+    public void registerCommands(MessageService messages) {
+        PluginCommand command = plugin.getCommand("psholo");
+        if (command == null) {
+            return;
+        }
+        PsHologramCommand executor = new PsHologramCommand(this, messages);
+        command.setExecutor(executor);
+        command.setTabCompleter(executor);
+    }
+
     public boolean debugEnabled() {
         return settings.debug;
     }
@@ -341,6 +379,11 @@ public final class PsModule {
     }
 
     public void disable() {
+        hologramHideSession.clearAll();
+        if (hologramHideListener != null) {
+            HandlerList.unregisterAll(hologramHideListener);
+            hologramHideListener = null;
+        }
         if (blockPersistence != null) {
             blockPersistence.saveFrom(store);
         }
@@ -419,6 +462,16 @@ public final class PsModule {
         ensureSoulblastWgOverrideListener();
         regionRestoreListener = new PsRegionRestoreListener(this);
         plugin.getServer().getPluginManager().registerEvents(regionRestoreListener, plugin);
+        if (settings.hologramHide.enabled && hologramVisibilityService != null) {
+            if (hologramHideListener != null) {
+                HandlerList.unregisterAll(hologramHideListener);
+            }
+            MessageService messages = plugin.messageService();
+            if (messages != null) {
+                hologramHideListener = new PsHologramHideListener(this, messages);
+                plugin.getServer().getPluginManager().registerEvents(hologramHideListener, plugin);
+            }
+        }
     }
 
     private PsRegionRestoreService createRegionRestoreService() {

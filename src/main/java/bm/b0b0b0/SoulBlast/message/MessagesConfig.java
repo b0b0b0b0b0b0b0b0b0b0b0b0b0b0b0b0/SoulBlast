@@ -150,5 +150,35 @@ public class MessagesConfig extends YamlSerializable {
 
     public String fuseMisfireNotOwner = "{prefix}&cТолько поставивший может обезвредить осечку.";
 
+    public String psHologramUsage = "{prefix}&7/psholo &fhide &7| &fshow &7| &ftoggle &8— затем &fЛКМ &8по своему блоку привата";
+
+    public String psHologramArmedHide =
+            "{prefix}&7Ударь &fЛКМ &7по своему блоку привата, чтобы &cскрыть &7голограмму &8(&7{seconds} &8сек)";
+
+    public String psHologramArmedShow =
+            "{prefix}&7Ударь &fЛКМ &7по своему блоку привата, чтобы &aпоказать &7голограмму &8(&7{seconds} &8сек)";
+
+    public String psHologramArmedToggle =
+            "{prefix}&7Ударь &fЛКМ &7по своему блоку привата, чтобы переключить голограмму &8(&7{seconds} &8сек)";
+
+    public String psHologramHidden = "{prefix}&7Голограмма &cскрыта&7. Вернуть: &f/psholo show";
+
+    public String psHologramShown = "{prefix}&7Голограмма &aпоказана";
+
+    public String psHologramAlreadyHidden = "{prefix}&7Голограмма уже скрыта";
+
+    public String psHologramAlreadyVisible = "{prefix}&7Голограмма уже видна";
+
+    public String psHologramNotOwner = "{prefix}&cЭто не твой приват";
+
+    public String psHologramNotTracked =
+            "{prefix}&cУ этого блока нет данных SoulBlast — создай приват заново или дождись восстановления";
+
+    public String psHologramNotProtectBlock = "{prefix}&cЭто не блок ProtectionStones";
+
+    public String psHologramModuleOff = "{prefix}&cМодуль ProtectionStones+ не активен";
+
+    public String psHologramDisabled = "{prefix}&cСкрытие голограмм отключено на сервере";
+
 }
 

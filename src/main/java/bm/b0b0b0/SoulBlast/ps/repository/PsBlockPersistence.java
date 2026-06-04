@@ -120,23 +120,12 @@ public final class PsBlockPersistence {
         if (state.key().worldId().equals(world.getUID())) {
             return state;
         }
-        return new PsBlockState(
-                PsBlockKey.of(
-                        world,
-                        state.key().x(),
-                        state.key().y(),
-                        state.key().z()
-                ),
-                state.typeAlias(),
-                state.durability(),
-                state.maximum(),
-                state.ownerName(),
-                state.ownerPrefix(),
-                state.ownerSuffix(),
-                state.radiusX(),
-                state.radiusY(),
-                state.radiusZ()
-        );
+        return state.withKey(PsBlockKey.of(
+                world,
+                state.key().x(),
+                state.key().y(),
+                state.key().z()
+        ));
     }
 
     private World findWorldForBlock(int x, int y, int z) {
@@ -190,6 +179,8 @@ public final class PsBlockPersistence {
         record.radiusX = state.radiusX();
         record.radiusY = state.radiusY();
         record.radiusZ = state.radiusZ();
+        record.ownerId = state.ownerId() == null ? "" : state.ownerId().toString();
+        record.hologramHidden = state.hologramHidden();
         return record;
     }
 
@@ -199,6 +190,14 @@ public final class PsBlockPersistence {
         }
         try {
             UUID worldId = UUID.fromString(record.worldId);
+            UUID ownerId = null;
+            if (record.ownerId != null && !record.ownerId.isBlank()) {
+                try {
+                    ownerId = UUID.fromString(record.ownerId);
+                } catch (IllegalArgumentException ignored) {
+                    ownerId = null;
+                }
+            }
             return new PsBlockState(
                     new PsBlockKey(worldId, record.x, record.y, record.z),
                     record.typeAlias == null ? "" : record.typeAlias,
@@ -207,9 +206,11 @@ public final class PsBlockPersistence {
                     record.ownerName == null ? "?" : record.ownerName,
                     record.ownerPrefix == null ? "" : record.ownerPrefix,
                     record.ownerSuffix == null ? "" : record.ownerSuffix,
+                    ownerId,
                     record.radiusX,
                     record.radiusY,
-                    record.radiusZ
+                    record.radiusZ,
+                    record.hologramHidden
             );
         } catch (IllegalArgumentException exception) {
             return null;

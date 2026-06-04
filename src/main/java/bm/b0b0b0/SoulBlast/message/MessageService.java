@@ -91,6 +91,19 @@ public final class MessageService {
             case "fuse-misfire-detonate" -> messages.fuseMisfireDetonate;
             case "fuse-misfire-fizzle" -> messages.fuseMisfireFizzle;
             case "fuse-misfire-not-owner" -> messages.fuseMisfireNotOwner;
+            case "ps-hologram-usage" -> messages.psHologramUsage;
+            case "ps-hologram-armed-hide" -> messages.psHologramArmedHide;
+            case "ps-hologram-armed-show" -> messages.psHologramArmedShow;
+            case "ps-hologram-armed-toggle" -> messages.psHologramArmedToggle;
+            case "ps-hologram-hidden" -> messages.psHologramHidden;
+            case "ps-hologram-shown" -> messages.psHologramShown;
+            case "ps-hologram-already-hidden" -> messages.psHologramAlreadyHidden;
+            case "ps-hologram-already-visible" -> messages.psHologramAlreadyVisible;
+            case "ps-hologram-not-owner" -> messages.psHologramNotOwner;
+            case "ps-hologram-not-tracked" -> messages.psHologramNotTracked;
+            case "ps-hologram-not-protect-block" -> messages.psHologramNotProtectBlock;
+            case "ps-hologram-module-off" -> messages.psHologramModuleOff;
+            case "ps-hologram-disabled" -> messages.psHologramDisabled;
             default -> null;
         };
     }

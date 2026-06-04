@@ -30,6 +30,11 @@ commands:
     description: Open gradual block decay catalog menu
     aliases: [soulblastblocks, blocks]
     permission: soulblast.decay.menu
+  psholo:
+    description: Hide or show your ProtectionStones hologram
+    usage: /psholo hide | show | toggle
+    aliases: [pshologram, pshide]
+    permission: soulblast.ps.hologram
 permissions:
   soulblast.use:
     default: op
@@ -42,4 +47,8 @@ permissions:
   soulblast.decay.menu:
     default: true
   soulblast.region.bypass:
+    default: op
+  soulblast.ps.hologram:
+    default: true
+  soulblast.ps.hologram.admin:
     default: op

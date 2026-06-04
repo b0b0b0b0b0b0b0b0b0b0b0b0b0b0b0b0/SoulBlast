@@ -4,6 +4,9 @@ settings:
   silent-startup: true
   block-merge-with-other-regions: true
   support-soulblast: true
+  hologram-hide:
+    enabled: true
+    arm-timeout-seconds: 60
   allow-in-region:
     mine-cart:
       hook-up: true

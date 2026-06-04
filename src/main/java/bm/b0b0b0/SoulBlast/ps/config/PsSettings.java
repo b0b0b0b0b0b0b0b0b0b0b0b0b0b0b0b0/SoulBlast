@@ -22,4 +22,6 @@ public class PsSettings {
 
     public PsAllowInRegionSettings allowInRegion = new PsAllowInRegionSettings();
 
+    public PsHologramHideSettings hologramHide = new PsHologramHideSettings();
+
 }

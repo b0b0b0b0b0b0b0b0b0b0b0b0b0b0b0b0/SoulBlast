@@ -22,5 +22,7 @@ public class PsBlockRecord extends YamlSerializable {
     public int radiusX;
     public int radiusY;
     public int radiusZ;
+    public String ownerId = "";
+    public boolean hologramHidden = false;
 
 }
