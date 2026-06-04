@@ -46,6 +46,8 @@ permissions:
     default: op
   soulblast.decay.menu:
     default: true
+  soulblast.decay.repair:
+    default: true
   soulblast.region.bypass:
     default: op
   soulblast.ps.hologram:

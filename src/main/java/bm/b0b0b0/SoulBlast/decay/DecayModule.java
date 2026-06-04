@@ -8,14 +8,18 @@ import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralFileConfig;
 import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralSettings;
 import bm.b0b0b0.SoulBlast.decay.config.DecayMessagesFileConfig;
 import bm.b0b0b0.SoulBlast.decay.gui.DecayBlocksMenuService;
+import bm.b0b0b0.SoulBlast.decay.config.DecayManualRepairSettings;
 import bm.b0b0b0.SoulBlast.decay.listener.DecayBlocksMenuListener;
+import bm.b0b0b0.SoulBlast.decay.listener.DecayManualRepairListener;
 import bm.b0b0b0.SoulBlast.decay.listener.DecayProtectionListener;
+import bm.b0b0b0.SoulBlast.decay.message.DecayMessageService;
 import bm.b0b0b0.SoulBlast.decay.repository.DecayingBlockStore;
 import bm.b0b0b0.SoulBlast.decay.service.DecayBlockBreaker;
 import bm.b0b0b0.SoulBlast.decay.service.DecayBlockRegistry;
 import bm.b0b0b0.SoulBlast.decay.service.DecayCrackBroadcaster;
 import bm.b0b0b0.SoulBlast.decay.service.DecayDamageResolver;
 import bm.b0b0b0.SoulBlast.decay.service.DecayExplosionBridge;
+import bm.b0b0b0.SoulBlast.decay.service.DecayManualRepairService;
 import bm.b0b0b0.SoulBlast.decay.service.DecayRegenerationService;
 import bm.b0b0b0.SoulBlast.decay.service.DecayTickService;
 import org.bukkit.scheduler.BukkitTask;
@@ -35,6 +39,8 @@ public final class DecayModule {
     private DecayExplosionBridge explosionBridge;
     private DecayTickService tickService;
     private DecayRegenerationService regenerationService;
+    private DecayManualRepairService manualRepairService;
+    private DecayMessageService decayMessages;
     private DecayBlocksMenuService menuService;
     private BukkitTask tickTask;
     private boolean listenersRegistered;
@@ -48,6 +54,7 @@ public final class DecayModule {
         if (!listenersRegistered) {
             plugin.getServer().getPluginManager().registerEvents(new DecayProtectionListener(this), plugin);
             plugin.getServer().getPluginManager().registerEvents(new DecayBlocksMenuListener(this), plugin);
+            plugin.getServer().getPluginManager().registerEvents(new DecayManualRepairListener(this), plugin);
             listenersRegistered = true;
         }
     }
@@ -82,6 +89,15 @@ public final class DecayModule {
         damageResolver.reload(sourcesConfig, general);
         crackBroadcaster.reload(general);
         regenerationService = new DecayRegenerationService(store, crackBroadcaster);
+        decayMessages = new DecayMessageService(messages);
+        manualRepairService = new DecayManualRepairService(
+                plugin,
+                general,
+                store,
+                registry,
+                crackBroadcaster,
+                decayMessages
+        );
         explosionBridge = new DecayExplosionBridge(
                 general,
                 registry,
@@ -130,6 +146,14 @@ public final class DecayModule {
 
     public DecayBlocksMenuService menuService() {
         return menuService;
+    }
+
+    public DecayManualRepairService manualRepairService() {
+        return manualRepairService;
+    }
+
+    public DecayManualRepairSettings manualRepairSettings() {
+        return general.manualRepair;
     }
 
     private void restartTickTask() {

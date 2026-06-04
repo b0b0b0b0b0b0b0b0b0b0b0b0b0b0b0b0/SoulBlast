@@ -41,4 +41,6 @@ public class DecayGeneralSettings {
     @Comment(@CommentValue("LINEAR или QUADRATIC — насколько быстро падает урон с расстоянием"))
     public String explosionDistanceFalloffCurve = "QUADRATIC";
 
+    public DecayManualRepairSettings manualRepair = new DecayManualRepairSettings();
+
 }

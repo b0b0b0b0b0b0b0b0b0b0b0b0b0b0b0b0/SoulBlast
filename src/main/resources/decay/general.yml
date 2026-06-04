@@ -11,3 +11,15 @@ general:
   explosion-distance-falloff-enabled: true
   explosion-min-damage-multiplier-at-edge: 0.15
   explosion-distance-falloff-curve: QUADRATIC
+  manual-repair:
+    enabled: true
+    sand-only: true
+    permission: soulblast.decay.repair
+    repair-per-click: 0.14
+    cooldown-ms: 200
+    reach: 5.5
+    right-click: true
+    left-click: true
+    fallback-material: SAND
+    sound: BLOCK_STONE_PLACE
+    particles: true

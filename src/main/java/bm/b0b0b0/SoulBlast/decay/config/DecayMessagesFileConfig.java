@@ -11,6 +11,18 @@ public class DecayMessagesFileConfig extends YamlSerializable {
 
     public String menuSortName = "&bСортировка";
 
+    public String repairSuccess = "&aСтена &7{percent}%&a трещин";
+
+    public String repairAlreadyHealthy = "&7Блок уже без трещин";
+
+    public String repairNoMaterial = "&cНужен &fпесок &cв инвентаре";
+
+    public String repairNotDecaying = "&7Этот блок не повреждён взрывом";
+
+    public String repairBlocked = "&cЗдесь нельзя чинить";
+
+    public String repairTooFar = "&cСлишком далеко";
+
     public DecayMessagesFileConfig() {
         super(SerializerConfigs.YAML);
     }

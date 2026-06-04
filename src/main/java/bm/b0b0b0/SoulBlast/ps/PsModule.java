@@ -42,6 +42,7 @@ import bm.b0b0b0.SoulBlast.ps.service.PsTypesMerger;
 import bm.b0b0b0.SoulBlast.ps.service.PsWitherBreakService;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -425,6 +426,10 @@ public final class PsModule {
 
     public boolean active() {
         return integrationEnabled && protectionStones.available();
+    }
+
+    public boolean isProtectBlock(Block block) {
+        return active() && protectionStones.isProtectBlock(block);
     }
 
     public PsExplosionBridge explosionBridge() {

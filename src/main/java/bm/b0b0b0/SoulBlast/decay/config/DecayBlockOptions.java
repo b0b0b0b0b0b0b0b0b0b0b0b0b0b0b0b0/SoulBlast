@@ -8,4 +8,6 @@ public class DecayBlockOptions {
 
     public boolean canPistonMove = true;
 
+    public boolean canManualRepair = true;
+
 }
