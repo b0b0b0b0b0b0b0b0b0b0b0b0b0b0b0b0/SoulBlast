@@ -18,6 +18,27 @@ public final class WorldGuardRegionScan {
     private WorldGuardRegionScan() {
     }
 
+    public static int countProtectionStoneRegions(JavaPlugin plugin, ProtectionStonesBridge bridge) {
+        if (!bridge.available() || !PluginIntegrationsReporter.isPluginActive(plugin, "WorldGuard")) {
+            return 0;
+        }
+        int total = 0;
+        for (World world : plugin.getServer().getWorlds()) {
+            try {
+                total += countInWorld(world, bridge);
+            } catch (ReflectiveOperationException exception) {
+                if (!scanFailureLogged) {
+                    scanFailureLogged = true;
+                    plugin.getLogger().warning(
+                            "Подсчёт PS-регионов не удался (дальше без спама): " + exception.getMessage()
+                    );
+                }
+                return total;
+            }
+        }
+        return total;
+    }
+
     public static List<Block> listProtectionStoneBlocks(
             JavaPlugin plugin,
             ProtectionStonesBridge bridge,
@@ -37,6 +58,35 @@ public final class WorldGuardRegionScan {
             }
             return List.of();
         }
+    }
+
+    private static int countInWorld(World world, ProtectionStonesBridge bridge) throws ReflectiveOperationException {
+        Class<?> regionClass = Class.forName("dev.espi.protectionstones.PSRegion");
+        Method fromWgRegion = regionClass.getMethod(
+                "fromWGRegion",
+                World.class,
+                Class.forName("com.sk89q.worldguard.protection.regions.ProtectedRegion")
+        );
+        Class<?> worldGuardClass = Class.forName("com.sk89q.worldguard.WorldGuard");
+        Object worldGuard = worldGuardClass.getMethod("getInstance").invoke(null);
+        Object platform = worldGuard.getClass().getMethod("getPlatform").invoke(worldGuard);
+        Object container = platform.getClass().getMethod("getRegionContainer").invoke(platform);
+        Class<?> bukkitAdapterClass = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
+        Object adaptedWorld = bukkitAdapterClass.getMethod("adapt", World.class).invoke(null, world);
+        Object manager = resolveRegionManager(container, adaptedWorld, world, bukkitAdapterClass);
+        if (manager == null) {
+            return 0;
+        }
+        Method getRegions = manager.getClass().getMethod("getRegions");
+        Map<?, ?> regions = (Map<?, ?>) getRegions.invoke(manager);
+        int count = 0;
+        for (Object wgRegion : regions.values()) {
+            Object psRegion = fromWgRegion.invoke(null, world, wgRegion);
+            if (psRegion != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static List<Block> scan(World world, ProtectionStonesBridge bridge) throws ReflectiveOperationException {

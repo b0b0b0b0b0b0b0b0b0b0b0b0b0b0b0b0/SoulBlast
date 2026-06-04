@@ -2,6 +2,9 @@ package bm.b0b0b0.SoulBlast.ps;
 
 import bm.b0b0b0.SoulBlast.SoulBlast;
 import bm.b0b0b0.SoulBlast.integration.PluginIntegrationsReporter;
+import bm.b0b0b0.SoulBlast.integration.worldguard.WorldGuardRegionScan;
+import bm.b0b0b0.SoulBlast.message.SoulBlastConsole;
+import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.config.PsConfigLoader;
 import bm.b0b0b0.SoulBlast.ps.config.PsSettings;
 import bm.b0b0b0.SoulBlast.ps.config.PsSettingsFileConfig;
@@ -37,6 +40,8 @@ import org.bukkit.World;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 public final class PsModule {
@@ -196,34 +201,82 @@ public final class PsModule {
     }
 
     public void logIntegrationProblems() {
+        logIntegrationProblems(null);
+    }
+
+    public void logIntegrationProblems(SoulBlastConsole console) {
         if (!integrationEnabled) {
             return;
         }
         if (startupStatusMessage == null || startupStatusMessage.isBlank()) {
             return;
         }
+        if (console != null) {
+            console.warn(startupStatusMessage);
+            return;
+        }
         plugin.getLogger().warning(startupStatusMessage);
     }
 
     public void logIntegrationSuccess() {
+        logIntegrationSuccess(null);
+    }
+
+    public void logIntegrationSuccess(SoulBlastConsole console) {
         if (!integrationEnabled || !active()) {
             return;
         }
-        if (settings.silentStartup) {
+        if (settings.silentStartup && console == null) {
             return;
         }
-        plugin.getLogger().info(
-                "[Интеграции] ProtectionStones+ подключён — типов в ps/types/: "
-                        + configuredTypeCount
-                        + ", блоков PS: "
-                        + autoDiscoveredTypeCount
-                        + ", support-soulblast="
-                        + settings.supportSoulblast
-        );
+        if (console != null) {
+            logIntegrationSuccessToConsole(console);
+            return;
+        }
+        String line = "ProtectionStones+ — типов в ps/types/: "
+                + configuredTypeCount
+                + ", блоков PS: "
+                + autoDiscoveredTypeCount
+                + ", support-soulblast="
+                + settings.supportSoulblast;
+        plugin.getLogger().info("[Интеграции] " + line);
         if (!luckPermsAvailable()) {
             plugin.getLogger().info(
                     "[Интеграции] LuckPerms не установлен — %owner_prefix% / %owner_suffix% в голограммах пустые"
             );
+        }
+    }
+
+    private void logIntegrationSuccessToConsole(SoulBlastConsole console) {
+        int psRegionCount = WorldGuardRegionScan.countProtectionStoneRegions(plugin, protectionStones);
+        int trackedRegions = store.size();
+        console.ok("ProtectionStones+ — активен");
+        List<PsConfiguredBlockInfo> blocks = protectionStones.listConfiguredBlocks().stream()
+                .sorted(Comparator.comparing(PsConfiguredBlockInfo::alias))
+                .toList();
+        if (blocks.isEmpty()) {
+            console.detail("Блоки привата: (нет в конфиге ProtectionStones)");
+        } else {
+            console.info("Блоки привата (ProtectionStones):");
+            for (PsConfiguredBlockInfo block : blocks) {
+                String material = block.material() == null ? "?" : block.material().name();
+                console.detail("  - " + material + " (" + block.alias() + ")");
+            }
+        }
+        console.info(
+                "Регионов PS на сервере: \u001B[90m"
+                        + psRegionCount
+                        + "\u001B[0m | записей SoulBlast (ps/regions/): \u001B[90m"
+                        + trackedRegions
+                        + "\u001B[0m | типов ps/types/: \u001B[90m"
+                        + configuredTypeCount
+                        + "\u001B[0m"
+        );
+        if (!settings.supportSoulblast) {
+            console.warn("support-soulblast=false — урон динамитов по приватам выключен");
+        }
+        if (!luckPermsAvailable()) {
+            console.detail("LuckPerms не установлен — префиксы в голограммах пустые");
         }
     }
 

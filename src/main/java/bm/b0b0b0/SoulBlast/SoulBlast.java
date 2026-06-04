@@ -32,6 +32,7 @@ import bm.b0b0b0.SoulBlast.listener.PrimedDynamiteRecallListener;
 import bm.b0b0b0.SoulBlast.listener.SoulGrimoireMenuListener;
 import bm.b0b0b0.SoulBlast.message.MessageService;
 import bm.b0b0b0.SoulBlast.message.MessagesConfig;
+import bm.b0b0b0.SoulBlast.message.SoulBlastStartupBanner;
 import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
 import bm.b0b0b0.SoulBlast.repository.PlayerProfileRepository;
 import bm.b0b0b0.SoulBlast.repository.SqlitePlayerProfileRepository;
@@ -118,9 +119,11 @@ public final class SoulBlast extends JavaPlugin {
     private DynamiteCooldownMessenger dynamiteCooldownMessenger;
     private BukkitTask explosionTask;
     private BukkitTask hologramTask;
+    private SoulBlastStartupBanner startupBanner;
 
     @Override
     public void onEnable() {
+        startupBanner = SoulBlastStartupBanner.open(this);
         configLoader = new YamlConfigLoader(this);
         pluginKeys = new PluginKeys(this);
         menuItemGuard = new MenuItemGuard(pluginKeys);
@@ -141,6 +144,9 @@ public final class SoulBlast extends JavaPlugin {
         registerCommands();
         startTasks();
         getServer().getPluginManager().registerEvents(new DeferredIntegrationsListener(this), this);
+        if (startupBanner != null) {
+            startupBanner.afterCoreLoad(this);
+        }
         scheduleIntegrationBootstrap();
     }
 
@@ -155,20 +161,40 @@ public final class SoulBlast extends JavaPlugin {
         if (!PluginIntegrationsReporter.isPluginActive(this, "WorldGuard")) {
             return;
         }
-        if (integrationsBootstrapped.get()) {
-            ProtectionStonesIntegrationSettings psIntegration = pluginConfig.protectionStonesIntegration;
-            if (psIntegration.enabled
-                    && PluginIntegrationsReporter.isPluginActive(this, "ProtectionStones")) {
-                reloadPlugin(true);
-            }
+        reloadPlugin(startupBanner == null);
+        integrationsBootstrapped.set(true);
+        if (!integrationStartupComplete()) {
             return;
         }
-        reloadPlugin(true);
-        integrationsBootstrapped.set(true);
+        finishStartupBanner();
+    }
+
+    private boolean integrationStartupComplete() {
+        ProtectionStonesIntegrationSettings psIntegration = pluginConfig.protectionStonesIntegration;
+        if (!psIntegration.enabled) {
+            return true;
+        }
+        if (!PluginIntegrationsReporter.isPluginInstalled(this, "ProtectionStones")) {
+            return true;
+        }
+        return PluginIntegrationsReporter.isPluginActive(this, "ProtectionStones");
+    }
+
+    private void finishStartupBanner() {
+        if (startupBanner == null) {
+            return;
+        }
+        startupBanner.finishIntegrations(this);
+        startupBanner = null;
     }
 
     @Override
     public void onDisable() {
+        if (startupBanner != null) {
+            startupBanner.printDisable();
+        } else {
+            SoulBlastStartupBanner.printShutdown();
+        }
         if (craftingRegistrar != null) {
             craftingRegistrar.unregisterAll();
         }
@@ -237,7 +263,7 @@ public final class SoulBlast extends JavaPlugin {
         if (decayModule != null) {
             decayModule.reload(quietStartup);
         }
-        if (logIntegrations && !quietStartup) {
+        if (logIntegrations && !quietStartup && startupBanner == null) {
             getLogger().info("[Интеграции] Подключение WorldGuard / ProtectionStones после полного старта сервера");
             if (psModule != null) {
                 psModule.logIntegrationSuccess();
@@ -340,7 +366,7 @@ public final class SoulBlast extends JavaPlugin {
         if (grimoireCommand != null) {
             grimoireCommand.reload(menuConfig);
         }
-        if (logIntegrations && !quietStartup) {
+        if (logIntegrations && !quietStartup && startupBanner == null) {
             PluginIntegrationsReporter.report(
                     this,
                     pluginConfig.regionProtection,
@@ -559,6 +585,10 @@ public final class SoulBlast extends JavaPlugin {
 
     public DynamiteRegistry dynamiteRegistry() {
         return dynamiteRegistry;
+    }
+
+    public VaultEconomyBridge vaultEconomyBridge() {
+        return vaultEconomyBridge;
     }
 
     public DynamiteItemFactory dynamiteItemFactory() {

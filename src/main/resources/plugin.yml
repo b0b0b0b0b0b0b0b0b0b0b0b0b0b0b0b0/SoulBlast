@@ -9,6 +9,8 @@ libraries:
   - it.unimi.dsi:fastutil:8.5.15
 loadbefore:
   - WorldGuard
+loadafter:
+  - ProtectionStones
 softdepend:
   - Vault
   - Essentials
