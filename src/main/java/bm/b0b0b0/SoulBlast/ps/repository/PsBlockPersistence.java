@@ -7,6 +7,7 @@ import bm.b0b0b0.SoulBlast.ps.model.PsBlockKey;
 import bm.b0b0b0.SoulBlast.ps.model.PsBlockState;
 import bm.b0b0b0.SoulBlast.ps.model.PsBlockState;
 import bm.b0b0b0.SoulBlast.ps.service.PsRegionId;
+import bm.b0b0b0.SoulBlast.ps.service.PsWorldLookup;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -139,13 +140,7 @@ public final class PsBlockPersistence {
     }
 
     private World findWorldForBlock(int x, int y, int z) {
-        for (World world : plugin.getServer().getWorlds()) {
-            Block block = world.getBlockAt(x, y, z);
-            if (!block.getType().isAir()) {
-                return world;
-            }
-        }
-        return null;
+        return PsWorldLookup.findWorldWithBlock(plugin.getServer(), x, y, z).orElse(null);
     }
 
     private void migrateLegacyIfNeeded() {

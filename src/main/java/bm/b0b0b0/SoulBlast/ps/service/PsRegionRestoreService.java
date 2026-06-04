@@ -15,6 +15,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,6 +51,50 @@ public final class PsRegionRestoreService {
         return restoreFromStore();
     }
 
+    public int restoreInWorld(World world) {
+        if (world == null) {
+            return 0;
+        }
+        int count = 0;
+        Server server = plugin.getServer();
+        UUID worldId = world.getUID();
+        for (PsBlockState state : List.copyOf(store.all())) {
+            if (!state.key().worldId().equals(worldId)) {
+                continue;
+            }
+            if (restoreOne(server, state)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int restoreInChunk(Chunk chunk) {
+        if (chunk == null || chunk.getWorld() == null) {
+            return 0;
+        }
+        int count = 0;
+        Server server = plugin.getServer();
+        World world = chunk.getWorld();
+        int minX = chunk.getX() << 4;
+        int maxX = minX + 15;
+        int minZ = chunk.getZ() << 4;
+        int maxZ = minZ + 15;
+        for (PsBlockState state : List.copyOf(store.all())) {
+            PsBlockKey key = state.key();
+            if (!key.worldId().equals(world.getUID())) {
+                continue;
+            }
+            if (key.x() < minX || key.x() > maxX || key.z() < minZ || key.z() > maxZ) {
+                continue;
+            }
+            if (restoreOne(server, state)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public int discoverMissing() {
         return discoverFromWorldGuard();
     }
@@ -57,7 +102,7 @@ public final class PsRegionRestoreService {
     private int restoreFromStore() {
         int count = 0;
         Server server = plugin.getServer();
-        for (PsBlockState state : java.util.List.copyOf(store.all())) {
+        for (PsBlockState state : List.copyOf(store.all())) {
             if (restoreOne(server, state)) {
                 count++;
             }
@@ -66,32 +111,78 @@ public final class PsRegionRestoreService {
     }
 
     private boolean restoreOne(Server server, PsBlockState state) {
-        Optional<Block> block = resolveBlock(server, state.key());
+        Optional<Block> block = PsWorldLookup.resolveBlock(server, state.key());
         if (block.isEmpty()) {
-            store.remove(state.key());
-            persistence.removeState(state.key());
             return false;
         }
         Block resolved = block.get();
-        if (!bridge.isProtectBlock(resolved)) {
-            store.remove(state.key());
-            holograms.remove(state.key());
-            persistence.removeState(state.key());
+        if (resolved.getType().isAir()) {
+            purgeMissing(state);
             return false;
         }
         ensureChunkLoaded(resolved.getWorld(), state.key());
         String canonicalAlias = PsBlockAliasResolver.canonicalForStorage(state.typeAlias(), resolved, bridge, types);
-        if (!canonicalAlias.isBlank() && !canonicalAlias.equals(state.typeAlias())) {
-            state.updateTypeAlias(canonicalAlias);
-            persistence.saveState(state);
+        if (canonicalAlias.isBlank()) {
+            canonicalAlias = state.typeAlias();
         }
         Optional<PsProtectionTypeDefinition> type = types.resolve(canonicalAlias, resolved);
         if (type.isEmpty()) {
             return false;
         }
+        if (!bridge.isProtectBlock(resolved) && !bridge.available()) {
+            return false;
+        }
+        if (!bridge.isProtectBlock(resolved) && bridge.available()) {
+            Optional<Block> protectBlock = bridge.protectBlockAt(resolved.getLocation());
+            if (protectBlock.isEmpty()) {
+                return false;
+            }
+            resolved = protectBlock.get();
+            canonicalAlias = PsBlockAliasResolver.canonicalForStorage(state.typeAlias(), resolved, bridge, types);
+            if (canonicalAlias.isBlank()) {
+                canonicalAlias = state.typeAlias();
+            }
+            type = types.resolve(canonicalAlias, resolved);
+            if (type.isEmpty()) {
+                return false;
+            }
+        }
+        if (!canonicalAlias.equals(state.typeAlias())) {
+            state.updateTypeAlias(canonicalAlias);
+            persistence.saveState(state);
+        }
+        alignWorldId(state, resolved.getWorld());
         refreshSnapshotMeta(state, resolved);
         holograms.attach(resolved.getWorld(), state, type.get());
         return true;
+    }
+
+    private void alignWorldId(PsBlockState state, World world) {
+        if (world == null || state.key().worldId().equals(world.getUID())) {
+            return;
+        }
+        PsBlockState realigned = new PsBlockState(
+                PsBlockKey.of(world, state.key().x(), state.key().y(), state.key().z()),
+                state.typeAlias(),
+                state.durability(),
+                state.maximum(),
+                state.ownerName(),
+                state.ownerPrefix(),
+                state.ownerSuffix(),
+                state.radiusX(),
+                state.radiusY(),
+                state.radiusZ()
+        );
+        store.remove(state.key());
+        persistence.removeState(state.key());
+        store.put(realigned);
+        persistence.saveState(realigned);
+    }
+
+    private void purgeMissing(PsBlockState state) {
+        store.remove(state.key());
+        holograms.remove(state.key());
+        persistence.removeState(state.key());
     }
 
     private int discoverFromWorldGuard() {
@@ -180,14 +271,6 @@ public final class PsRegionRestoreService {
                 state.updateTypeAlias(alias);
             }
         });
-    }
-
-    private static Optional<Block> resolveBlock(Server server, PsBlockKey key) {
-        World world = server.getWorld(key.worldId());
-        if (world == null) {
-            return Optional.empty();
-        }
-        return Optional.of(world.getBlockAt(key.x(), key.y(), key.z()));
     }
 
 }

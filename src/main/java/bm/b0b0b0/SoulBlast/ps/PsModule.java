@@ -9,6 +9,7 @@ import bm.b0b0b0.SoulBlast.ps.integration.LuckPermsBridge;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
 import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
 import bm.b0b0b0.SoulBlast.ps.listener.PsEventRegistrar;
+import bm.b0b0b0.SoulBlast.ps.listener.PsRegionRestoreListener;
 import bm.b0b0b0.SoulBlast.ps.listener.PsLifecycleListener;
 import bm.b0b0b0.SoulBlast.ps.listener.PsProtectionItemGlowListener;
 import bm.b0b0b0.SoulBlast.ps.listener.PsRegionAllowanceListener;
@@ -31,6 +32,8 @@ import bm.b0b0b0.SoulBlast.ps.service.PsTypeRegistry;
 import bm.b0b0b0.SoulBlast.ps.service.PsTypesFileSynchronizer;
 import bm.b0b0b0.SoulBlast.ps.service.PsTypesMerger;
 import bm.b0b0b0.SoulBlast.ps.service.PsWitherBreakService;
+import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 
@@ -59,6 +62,7 @@ public final class PsModule {
     private Listener witherListener;
     private Listener itemGlowListener;
     private Listener soulblastWgOverrideListener;
+    private Listener regionRestoreListener;
     private boolean listenersRegistered;
     private boolean integrationEnabled;
     private int configuredTypeCount;
@@ -302,7 +306,25 @@ public final class PsModule {
             HandlerList.unregisterAll(soulblastWgOverrideListener);
             soulblastWgOverrideListener = null;
         }
+        if (regionRestoreListener != null) {
+            HandlerList.unregisterAll(regionRestoreListener);
+            regionRestoreListener = null;
+        }
         listenersRegistered = false;
+    }
+
+    public void restoreRegionsInWorld(World world) {
+        if (!active() || typeRegistry == null || blockPersistence == null) {
+            return;
+        }
+        createRegionRestoreService().restoreInWorld(world);
+    }
+
+    public void restoreRegionsInChunk(Chunk chunk) {
+        if (!active() || typeRegistry == null || blockPersistence == null) {
+            return;
+        }
+        createRegionRestoreService().restoreInChunk(chunk);
     }
 
     public boolean active() {
@@ -342,10 +364,12 @@ public final class PsModule {
             plugin.getServer().getPluginManager().registerEvents(itemGlowListener, plugin);
         }
         ensureSoulblastWgOverrideListener();
+        regionRestoreListener = new PsRegionRestoreListener(this);
+        plugin.getServer().getPluginManager().registerEvents(regionRestoreListener, plugin);
     }
 
-    private void scheduleRegionRestore(PsDebugLog debugLog) {
-        PsRegionRestoreService restore = new PsRegionRestoreService(
+    private PsRegionRestoreService createRegionRestoreService() {
+        return new PsRegionRestoreService(
                 plugin,
                 protectionStones,
                 luckPerms,
@@ -354,9 +378,15 @@ public final class PsModule {
                 holograms,
                 blockPersistence
         );
+    }
+
+    private void scheduleRegionRestore(PsDebugLog debugLog) {
+        PsRegionRestoreService restore = createRegionRestoreService();
         scheduleRestorePass(restore, debugLog, 1L);
+        scheduleRestorePass(restore, debugLog, 20L);
         scheduleRestorePass(restore, debugLog, 40L);
         scheduleRestorePass(restore, debugLog, 100L);
+        scheduleRestorePass(restore, debugLog, 200L);
     }
 
     private void scheduleRestorePass(PsRegionRestoreService restore, PsDebugLog debugLog, long delayTicks) {
