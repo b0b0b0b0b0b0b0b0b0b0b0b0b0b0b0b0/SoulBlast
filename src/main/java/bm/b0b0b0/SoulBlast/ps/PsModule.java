@@ -1,0 +1,427 @@
+package bm.b0b0b0.SoulBlast.ps;
+
+import bm.b0b0b0.SoulBlast.SoulBlast;
+import bm.b0b0b0.SoulBlast.integration.PluginIntegrationsReporter;
+import bm.b0b0b0.SoulBlast.ps.config.PsConfigLoader;
+import bm.b0b0b0.SoulBlast.ps.config.PsSettings;
+import bm.b0b0b0.SoulBlast.ps.config.PsSettingsFileConfig;
+import bm.b0b0b0.SoulBlast.ps.integration.LuckPermsBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
+import bm.b0b0b0.SoulBlast.ps.listener.PsEventRegistrar;
+import bm.b0b0b0.SoulBlast.ps.listener.PsLifecycleListener;
+import bm.b0b0b0.SoulBlast.ps.listener.PsProtectionItemGlowListener;
+import bm.b0b0b0.SoulBlast.ps.listener.PsRegionAllowanceListener;
+import bm.b0b0b0.SoulBlast.ps.listener.PsSoulblastDynamiteWorldGuardListener;
+import bm.b0b0b0.SoulBlast.ps.listener.PsWitherProtectionListener;
+import bm.b0b0b0.SoulBlast.ps.repository.PsBlockPersistence;
+import bm.b0b0b0.SoulBlast.ps.repository.PsBlockStore;
+import bm.b0b0b0.SoulBlast.ps.repository.PsTypesDirectory;
+import bm.b0b0b0.SoulBlast.ps.service.PsRegionRestoreService;
+import bm.b0b0b0.SoulBlast.ps.service.PsDynamiteRaidService;
+import bm.b0b0b0.SoulBlast.ps.service.PsExplosionBridge;
+import bm.b0b0b0.SoulBlast.config.RegionProtectionSettings;
+import bm.b0b0b0.SoulBlast.service.region.PsDynamiteRaidBypass;
+import bm.b0b0b0.SoulBlast.service.region.RegionBackend;
+import bm.b0b0b0.SoulBlast.ps.service.PsHologramService;
+import bm.b0b0b0.SoulBlast.ps.service.PsLifecycleService;
+import bm.b0b0b0.SoulBlast.ps.service.PsDebugLog;
+import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
+import bm.b0b0b0.SoulBlast.ps.service.PsTypeRegistry;
+import bm.b0b0b0.SoulBlast.ps.service.PsTypesFileSynchronizer;
+import bm.b0b0b0.SoulBlast.ps.service.PsTypesMerger;
+import bm.b0b0b0.SoulBlast.ps.service.PsWitherBreakService;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+
+import java.util.Map;
+
+public final class PsModule {
+
+    private final SoulBlast plugin;
+    private final PsConfigLoader configLoader;
+    private final PsBlockStore store = new PsBlockStore();
+    private PsBlockPersistence blockPersistence;
+    private PsTypesDirectory typesDirectory;
+    private final PsHologramService holograms = new PsHologramService();
+
+    private PsSettings settings = new PsSettings();
+    private ProtectionStonesBridge protectionStones;
+    private LuckPermsBridge luckPerms;
+    private PsTypeRegistry typeRegistry;
+    private PsLifecycleService lifecycleService;
+    private PsLifecycleListener lifecycleListener;
+    private PsExplosionBridge explosionBridge;
+    private PsDurabilityTrace durabilityTrace;
+    private PsWitherBreakService witherBreakService;
+    private PsEventRegistrar eventRegistrar;
+    private Listener allowanceListener;
+    private Listener witherListener;
+    private Listener itemGlowListener;
+    private Listener soulblastWgOverrideListener;
+    private boolean listenersRegistered;
+    private boolean integrationEnabled;
+    private int configuredTypeCount;
+    private int autoDiscoveredTypeCount;
+    private String startupStatusMessage = "";
+
+    public PsModule(SoulBlast plugin) {
+        this.plugin = plugin;
+        this.configLoader = new PsConfigLoader(plugin);
+        this.protectionStones = ProtectionStonesBridge.disabled();
+        this.luckPerms = LuckPermsBridge.disabled();
+    }
+
+    public void enable() {
+        if (!active()) {
+            return;
+        }
+        if (!listenersRegistered) {
+            registerListeners();
+            listenersRegistered = true;
+        }
+    }
+
+    public void reload() {
+        try {
+            reloadInternal();
+        } catch (Throwable failure) {
+            startupStatusMessage = "[Интеграции] ProtectionStones+ — ошибка загрузки, модуль деактивирован";
+            plugin.getLogger().warning(startupStatusMessage + ": " + failure.getMessage());
+            protectionStones = ProtectionStonesBridge.disabled();
+            luckPerms = LuckPermsBridge.disabled();
+        }
+    }
+
+    private void reloadInternal() {
+        integrationEnabled = plugin.getPluginConfig().protectionStonesIntegration.enabled;
+        if (!integrationEnabled) {
+            protectionStones = ProtectionStonesBridge.disabled();
+            luckPerms = LuckPermsBridge.disabled();
+            explosionBridge = null;
+            startupStatusMessage = resolveStartupStatusMessage();
+            holograms.clearAll();
+            store.clear();
+            return;
+        }
+        PsSettingsFileConfig settingsConfig = configLoader.load(
+                "ps/settings.yml",
+                "settings.yml",
+                new PsSettingsFileConfig()
+        );
+        settings = settingsConfig.settings;
+        if (!settings.supportSoulblast) {
+            plugin.getLogger().warning(
+                    "[ProtectionStones+] support-soulblast=false — урон динамитов по приватам выключен. "
+                            + "В ps/settings.yml: settings.support-soulblast: true"
+            );
+        }
+        protectionStones = ProtectionStonesBridge.tryCreate(plugin);
+        luckPerms = LuckPermsBridge.tryCreate(plugin);
+        startupStatusMessage = resolveStartupStatusMessage();
+        if (!active()) {
+            explosionBridge = null;
+            return;
+        }
+        if (typesDirectory == null) {
+            typesDirectory = new PsTypesDirectory(plugin, configLoader.folder());
+        }
+        Map<String, PsProtectionTypeDefinition> loadedTypes = typesDirectory.loadAll();
+        int newlyWritten = PsTypesFileSynchronizer.syncAndSave(
+                plugin,
+                typesDirectory,
+                loadedTypes,
+                protectionStones
+        );
+        if (newlyWritten > 0) {
+            loadedTypes = typesDirectory.loadAll();
+        }
+        configuredTypeCount = loadedTypes.size();
+        autoDiscoveredTypeCount = protectionStones.listConfiguredBlocks().size();
+        typeRegistry = new PsTypeRegistry(protectionStones);
+        Map<String, PsProtectionTypeDefinition> registryTypes = PsTypesMerger.forRegistry(loadedTypes);
+        if (registryTypes.isEmpty()) {
+            registryTypes = PsTypesMerger.runtimeDefaults(protectionStones);
+        }
+        typeRegistry.reload(PsTypesMerger.normalizeKeys(registryTypes));
+        if (blockPersistence == null) {
+            blockPersistence = new PsBlockPersistence(plugin, configLoader);
+        }
+        blockPersistence.loadInto(store);
+        PsDebugLog debugLog = new PsDebugLog(plugin, settings);
+        durabilityTrace = new PsDurabilityTrace(plugin, settings);
+        debugLog.logReload(protectionStones, loadedTypes, newlyWritten);
+        lifecycleService = new PsLifecycleService(
+                plugin,
+                settings,
+                protectionStones,
+                luckPerms,
+                typeRegistry,
+                store,
+                holograms,
+                debugLog,
+                blockPersistence
+        );
+        lifecycleListener = new PsLifecycleListener(
+                settings,
+                protectionStones,
+                typeRegistry,
+                lifecycleService,
+                debugLog
+        );
+        explosionBridge = new PsExplosionBridge(
+                plugin,
+                settings,
+                typeRegistry,
+                store,
+                holograms,
+                protectionStones,
+                lifecycleService,
+                blockPersistence,
+                debugLog,
+                durabilityTrace
+        );
+        scheduleRegionRestore(debugLog);
+        witherBreakService = new PsWitherBreakService(
+                typeRegistry,
+                store,
+                protectionStones,
+                lifecycleService
+        );
+        ensureSoulblastWgOverrideListener();
+    }
+
+    public void logIntegrationProblems() {
+        if (!integrationEnabled) {
+            return;
+        }
+        if (startupStatusMessage == null || startupStatusMessage.isBlank()) {
+            return;
+        }
+        plugin.getLogger().warning(startupStatusMessage);
+    }
+
+    public void logIntegrationSuccess() {
+        if (!integrationEnabled || !active()) {
+            return;
+        }
+        if (settings.silentStartup) {
+            return;
+        }
+        plugin.getLogger().info(
+                "[Интеграции] ProtectionStones+ подключён — типов в ps/types/: "
+                        + configuredTypeCount
+                        + ", блоков PS: "
+                        + autoDiscoveredTypeCount
+                        + ", support-soulblast="
+                        + settings.supportSoulblast
+        );
+        if (!luckPermsAvailable()) {
+            plugin.getLogger().info(
+                    "[Интеграции] LuckPerms не установлен — %owner_prefix% / %owner_suffix% в голограммах пустые"
+            );
+        }
+    }
+
+    public PsDynamiteRaidBypass createDynamiteRaidBypass(
+            RegionBackend regionBackend,
+            RegionProtectionSettings regionSettings
+    ) {
+        if (!active()) {
+            return null;
+        }
+        return new PsDynamiteRaidService(
+                settings,
+                typeRegistry,
+                protectionStones,
+                regionBackend,
+                regionSettings
+        );
+    }
+
+    public boolean integrationEnabled() {
+        return integrationEnabled;
+    }
+
+    public int configuredTypeCount() {
+        return configuredTypeCount;
+    }
+
+    public int autoDiscoveredTypeCount() {
+        return autoDiscoveredTypeCount;
+    }
+
+    public boolean silentStartup() {
+        return settings.silentStartup;
+    }
+
+    public boolean debugEnabled() {
+        return settings.debug;
+    }
+
+    public boolean luckPermsAvailable() {
+        return luckPerms != null && luckPerms.available();
+    }
+
+    public String startupStatusMessage() {
+        return startupStatusMessage;
+    }
+
+    private String resolveStartupStatusMessage() {
+        if (!integrationEnabled) {
+            return null;
+        }
+        if (!PluginIntegrationsReporter.isPluginActive(plugin, "ProtectionStones")) {
+            if (PluginIntegrationsReporter.isPluginInstalled(plugin, "ProtectionStones")) {
+                return null;
+            }
+            return "[Интеграции] ProtectionStones не найден — модуль деактивирован";
+        }
+        if (!protectionStones.available()) {
+            return "[Интеграции] ProtectionStones: API 2.10+ недоступен — модуль деактивирован";
+        }
+        return null;
+    }
+
+    public void disable() {
+        if (blockPersistence != null) {
+            blockPersistence.saveFrom(store);
+        }
+        holograms.clearAll();
+        store.clear();
+        if (allowanceListener != null) {
+            HandlerList.unregisterAll(allowanceListener);
+        }
+        if (witherListener != null) {
+            HandlerList.unregisterAll(witherListener);
+        }
+        if (itemGlowListener != null) {
+            HandlerList.unregisterAll(itemGlowListener);
+        }
+        if (soulblastWgOverrideListener != null) {
+            HandlerList.unregisterAll(soulblastWgOverrideListener);
+            soulblastWgOverrideListener = null;
+        }
+        listenersRegistered = false;
+    }
+
+    public boolean active() {
+        return integrationEnabled && protectionStones.available();
+    }
+
+    public PsExplosionBridge explosionBridge() {
+        return explosionBridge;
+    }
+
+    public PsDurabilityTrace durabilityTrace() {
+        return durabilityTrace;
+    }
+
+    public PsBlockStore blockStore() {
+        return store;
+    }
+
+    public PsLifecycleListener lifecycleListener() {
+        return lifecycleListener;
+    }
+
+    private void registerListeners() {
+        eventRegistrar = new PsEventRegistrar(plugin, this);
+        eventRegistrar.registerProtectionStonesEvents();
+        if (anyAllowanceEnabled()) {
+            allowanceListener = new PsRegionAllowanceListener(settings, protectionStones);
+            plugin.getServer().getPluginManager().registerEvents(allowanceListener, plugin);
+        }
+        if (settings.allowInRegion.breakBlockWithWither
+                && typeRegistry != null) {
+            witherListener = new PsWitherProtectionListener(settings, witherBreakService);
+            plugin.getServer().getPluginManager().registerEvents(witherListener, plugin);
+        }
+        if (anyItemGlowEnabled()) {
+            itemGlowListener = new PsProtectionItemGlowListener(plugin, protectionStones, typeRegistry);
+            plugin.getServer().getPluginManager().registerEvents(itemGlowListener, plugin);
+        }
+        ensureSoulblastWgOverrideListener();
+    }
+
+    private void scheduleRegionRestore(PsDebugLog debugLog) {
+        PsRegionRestoreService restore = new PsRegionRestoreService(
+                plugin,
+                protectionStones,
+                luckPerms,
+                typeRegistry,
+                store,
+                holograms,
+                blockPersistence
+        );
+        scheduleRestorePass(restore, debugLog, 1L);
+        scheduleRestorePass(restore, debugLog, 40L);
+        scheduleRestorePass(restore, debugLog, 100L);
+    }
+
+    private void scheduleRestorePass(PsRegionRestoreService restore, PsDebugLog debugLog, long delayTicks) {
+        Runnable task = () -> {
+            int fromDisk = restore.restoreFromDisk();
+            int discovered = restore.discoverMissing();
+            if (fromDisk > 0) {
+                debugLog.line("восстановлено голограмм из ps/regions/: " + fromDisk);
+            }
+            if (discovered > 0) {
+                debugLog.line("обнаружено PS-блоков без файла в ps/regions/: " + discovered);
+            }
+        };
+        if (delayTicks <= 1L) {
+            plugin.getServer().getScheduler().runTask(plugin, task);
+        } else {
+            plugin.getServer().getScheduler().runTaskLater(plugin, task, delayTicks);
+        }
+    }
+
+    public void ensureSoulblastWgOverrideListener() {
+        if (!plugin.regionProtectionReady()
+                || !plugin.regionProtectionService().regionBackend().available()) {
+            if (soulblastWgOverrideListener != null) {
+                HandlerList.unregisterAll(soulblastWgOverrideListener);
+                soulblastWgOverrideListener = null;
+            }
+            return;
+        }
+        if (soulblastWgOverrideListener != null) {
+            return;
+        }
+        soulblastWgOverrideListener = new PsSoulblastDynamiteWorldGuardListener(
+                plugin.dynamiteRegistry(),
+                plugin.dynamiteItemFactory(),
+                plugin.placedDynamiteTracker(),
+                plugin.pluginKeys()
+        );
+        plugin.getServer().getPluginManager().registerEvents(soulblastWgOverrideListener, plugin);
+    }
+
+    private boolean anyItemGlowEnabled() {
+        if (typeRegistry == null) {
+            return false;
+        }
+        for (PsProtectionTypeDefinition type : typeRegistry.allTypes()) {
+            if (type.itemGlow.enabled) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean anyAllowanceEnabled() {
+        if (!integrationEnabled) {
+            return false;
+        }
+        var allow = settings.allowInRegion;
+        return allow.fallingBlock
+                || allow.breakBlockWithWither
+                || allow.useFireArrowToIgniteTnt
+                || allow.usePiston
+                || allow.useSpawnEggs
+                || allow.mineCart.open
+                || allow.mineCart.hookUp;
+    }
+
+}

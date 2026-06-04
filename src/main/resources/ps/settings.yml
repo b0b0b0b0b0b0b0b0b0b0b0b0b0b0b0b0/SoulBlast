@@ -1,0 +1,15 @@
+settings:
+  debug: false
+  durability-trace: false
+  silent-startup: true
+  block-merge-with-other-regions: true
+  support-soulblast: true
+  allow-in-region:
+    mine-cart:
+      hook-up: true
+      open: true
+    falling-block: true
+    break-block-with-wither: true
+    use-fire-arrow-to-ignite-tnt: true
+    use-piston: true
+    use-spawn-eggs: true

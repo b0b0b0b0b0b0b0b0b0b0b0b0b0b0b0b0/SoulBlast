@@ -1,0 +1,220 @@
+package bm.b0b0b0.SoulBlast.service;
+
+import bm.b0b0b0.SoulBlast.config.BlockExplosionRule;
+import bm.b0b0b0.SoulBlast.decay.service.DecayExplosionBridge;
+import bm.b0b0b0.SoulBlast.ps.service.PsExplosionBridge;
+import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
+import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
+import bm.b0b0b0.SoulBlast.config.ExplosionBlockPolicy;
+import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
+import bm.b0b0b0.SoulBlast.service.TsarBombRules;
+import bm.b0b0b0.SoulBlast.model.ExplosionBlockAction;
+import bm.b0b0b0.SoulBlast.model.ExplosionJob;
+import bm.b0b0b0.SoulBlast.service.region.RegionProtectionService;
+import bm.b0b0b0.SoulBlast.util.BukkitKeys;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.block.Block;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.Optional;
+
+public final class BlockExplosionApplier {
+
+    private final BlastResistanceService resistanceService;
+    private final ExplosionEntityEffectsService entityEffectsService;
+    private final RegionProtectionService regionProtection;
+    private final DecayExplosionBridge decayBridge;
+    private final ObsidianInstantShatterService obsidianShatter;
+    private final PsExplosionBridge psExplosionBridge;
+    private final ExplosionFireSupport fireSupport = new ExplosionFireSupport();
+    private final java.util.Random random = new java.util.Random();
+
+    public BlockExplosionApplier(
+            BlastResistanceService resistanceService,
+            ExplosionEntityEffectsService entityEffectsService,
+            RegionProtectionService regionProtection,
+            DecayExplosionBridge decayBridge,
+            ObsidianInstantShatterService obsidianShatter,
+            PsExplosionBridge psExplosionBridge
+    ) {
+        this.resistanceService = resistanceService;
+        this.entityEffectsService = entityEffectsService;
+        this.regionProtection = regionProtection;
+        this.decayBridge = decayBridge;
+        this.obsidianShatter = obsidianShatter;
+        this.psExplosionBridge = psExplosionBridge;
+    }
+
+    public void applyBlock(ExplosionJob job, ExplosionJob.BlockTarget target, ExplosionChunkContext chunkContext) {
+        World world = job.getCenter().getWorld();
+        if (world == null) {
+            return;
+        }
+        if (!world.isChunkLoaded(target.x() >> 4, target.z() >> 4)) {
+            return;
+        }
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        if (target.y() < minY || target.y() > maxY) {
+            return;
+        }
+        Player player = job.getSource() instanceof Player sourcePlayer ? sourcePlayer : null;
+        Location blockLocation = new Location(world, target.x(), target.y(), target.z());
+        if (!regionProtection.allowsExplosionBlock(blockLocation, job.getDynamite(), player)) {
+            return;
+        }
+        Block block = chunkContext.blockAt(world, target.x(), target.y(), target.z());
+        boolean edgePhysics = job.requiresPhysics(target);
+        if (target.action() == ExplosionBlockAction.CLEAR_LIQUID) {
+            if (block.isLiquid() || block.getType() == Material.KELP || block.getType() == Material.SEAGRASS) {
+                block.setType(Material.AIR, edgePhysics);
+            }
+            return;
+        }
+        if (target.action() == ExplosionBlockAction.PLACE) {
+            if (block.getType().isAir() || block.isLiquid()) {
+                block.setType(target.placeMaterial(), edgePhysics);
+            }
+            return;
+        }
+        if (block.getType().isAir()) {
+            return;
+        }
+        if (!ExplosionCenter.isWithinRadius(block, job.getCenter(), job.getDynamite().explosion.radius)) {
+            return;
+        }
+        if (block.getType() == Material.TNT) {
+            entityEffectsService.breakTntBlocks(job, target);
+            return;
+        }
+        if (psExplosionBridge != null && psExplosionBridge.tryAbsorbExplosion(block, job.getDynamite(), job)) {
+            return;
+        }
+        ExplosionSettings settings = job.getDynamite().explosion;
+        ExplosionBlockPolicy policy = resolvePolicy(settings, job.getDynamite());
+        Optional<BlockExplosionRule> rule = findRule(settings.blockRules, block);
+        ExplosionAlgorithmSettings algorithm = settings.algorithm;
+        if (policy == ExplosionBlockPolicy.WHITELIST) {
+            if (rule.isEmpty() || isKeepMode(rule.get())) {
+                return;
+            }
+            fireSupport.igniteOnSolidBeforeBreak(block, settings, algorithm);
+            applyBreak(block, job, rule.get(), algorithm, edgePhysics);
+            return;
+        }
+        if (rule.isPresent()) {
+            if (isKeepMode(rule.get())) {
+                return;
+            }
+            fireSupport.igniteOnSolidBeforeBreak(block, settings, algorithm);
+            applyBreak(block, job, rule.get(), algorithm, edgePhysics);
+            return;
+        }
+        if (policy == ExplosionBlockPolicy.OMNIVORE) {
+            if (block.isLiquid()) {
+                block.setType(Material.AIR, edgePhysics);
+                return;
+            }
+            fireSupport.igniteOnSolidBeforeBreak(block, settings, algorithm);
+            applyBreak(block, job, null, algorithm, edgePhysics);
+            return;
+        }
+        if (block.isLiquid()) {
+            block.setType(Material.AIR, edgePhysics);
+            return;
+        }
+        fireSupport.igniteOnSolidBeforeBreak(block, settings, algorithm);
+        applyBreak(block, job, null, algorithm, edgePhysics);
+    }
+
+    private void applyBreak(
+            Block block,
+            ExplosionJob job,
+            BlockExplosionRule rule,
+            ExplosionAlgorithmSettings algorithm,
+            boolean edgePhysics
+    ) {
+        DynamiteDefinition dynamite = job.getDynamite();
+        if (psExplosionBridge != null && psExplosionBridge.tryAbsorbExplosion(block, dynamite, job)) {
+            return;
+        }
+        if (obsidianShatter != null
+                && obsidianShatter.isEnabled(algorithm)
+                && obsidianShatter.tryShatter(block, job, rule, algorithm, edgePhysics)) {
+            return;
+        }
+        if (obsidianShatter != null
+                && obsidianShatter.isEnabled(algorithm)
+                && obsidianShatter.matchesObsidianTarget(block)) {
+            return;
+        }
+        if (decayBridge != null && decayBridge.supports(block)) {
+            decayBridge.tryApplyExplosionDamage(
+                    block,
+                    job.getCenter(),
+                    dynamite,
+                    rule,
+                    algorithm,
+                    edgePhysics,
+                    job.isRayBoosted(block.getX(), block.getY(), block.getZ())
+            );
+            return;
+        }
+        if (rule != null) {
+            applyRule(block, rule, algorithm, edgePhysics);
+            return;
+        }
+        breakBlock(block, algorithm, edgePhysics);
+    }
+
+    private ExplosionBlockPolicy resolvePolicy(ExplosionSettings settings, DynamiteDefinition dynamite) {
+        ExplosionBlockPolicy policy = ExplosionBlockPolicy.parse(settings.blockPolicy);
+        if (policy == ExplosionBlockPolicy.STANDARD && TsarBombRules.isTsar(dynamite)) {
+            return ExplosionBlockPolicy.OMNIVORE;
+        }
+        return policy;
+    }
+
+    private static boolean isKeepMode(BlockExplosionRule rule) {
+        return "KEEP".equalsIgnoreCase(rule.mode);
+    }
+
+    private void breakBlock(Block block, ExplosionAlgorithmSettings algorithm, boolean edgePhysics) {
+        ExplosionContainerBreak.breakWithAlgorithm(block, algorithm, edgePhysics);
+    }
+
+    private Optional<BlockExplosionRule> findRule(List<BlockExplosionRule> rules, Block block) {
+        for (BlockExplosionRule rule : rules) {
+            if (rule.chance < 1.0 && random.nextDouble() > rule.chance) {
+                continue;
+            }
+            if (resistanceService.matchesTarget(rule.target, block)) {
+                return Optional.of(rule);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private void applyRule(Block block, BlockExplosionRule rule, ExplosionAlgorithmSettings algorithm, boolean edgePhysics) {
+        String mode = rule.mode.toUpperCase();
+        switch (mode) {
+            case "KEEP" -> {
+            }
+            case "DROP" -> ExplosionContainerBreak.applyDropRule(block, rule.dropMaterial, edgePhysics);
+            case "BREAK" -> ExplosionContainerBreak.breakWithAlgorithm(block, algorithm, edgePhysics);
+            case "TRANSFORM" -> {
+                Material into = BukkitKeys.material(rule.transformInto);
+                if (into != null) {
+                    block.setType(into, edgePhysics);
+                }
+            }
+            default -> ExplosionContainerBreak.breakWithAlgorithm(block, algorithm, edgePhysics);
+        }
+    }
+
+}

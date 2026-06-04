@@ -1,0 +1,43 @@
+name: SoulBlast
+version: '${version}'
+main: bm.b0b0b0.SoulBlast.SoulBlast
+api-version: '1.21'
+authors: [ b0b0b0 ]
+libraries:
+  - net.elytrium:serializer:1.1.1
+  - org.xerial:sqlite-jdbc:3.45.3.0
+  - it.unimi.dsi:fastutil:8.5.15
+loadbefore:
+  - WorldGuard
+softdepend:
+  - Vault
+  - Essentials
+  - WorldGuard
+  - ProtectionStones
+  - LuckPerms
+commands:
+  soulblast:
+    description: SoulBlast dynamite management
+    usage: /soulblast give <player> <id> [amount] | menu | reload
+    permission: soulblast.use
+  soulgrimoire:
+    description: Open SoulBlast grimoire menu
+    aliases: [soulfire, soulblast-menu]
+    permission: soulblast.menu
+  decayblocks:
+    description: Open gradual block decay catalog menu
+    aliases: [soulblastblocks, blocks]
+    permission: soulblast.decay.menu
+permissions:
+  soulblast.use:
+    default: op
+  soulblast.give:
+    default: op
+  soulblast.menu:
+    default: true
+  soulblast.reload:
+    default: op
+  soulblast.decay.menu:
+    default: true
+  soulblast.region.bypass:
+    default: op

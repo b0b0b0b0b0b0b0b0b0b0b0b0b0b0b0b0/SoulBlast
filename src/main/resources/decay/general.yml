@@ -1,0 +1,13 @@
+general:
+  enabled: true
+  max-active-blocks: 4096
+  damage-packets-per-tick: 120
+  viewer-radius: 48
+  tick-interval: 1
+  regeneration-interval-ticks: 20
+  crack-refresh-ticks: 20
+  crack-source-id: 917364
+  max-damage-per-hit: 0.14
+  explosion-distance-falloff-enabled: true
+  explosion-min-damage-multiplier-at-edge: 0.15
+  explosion-distance-falloff-curve: QUADRATIC

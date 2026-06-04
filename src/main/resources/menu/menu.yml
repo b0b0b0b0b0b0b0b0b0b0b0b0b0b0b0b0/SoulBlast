@@ -1,0 +1,90 @@
+options:
+  title: '        &#C084FC✦ &#721ddbГримуар Между Мирами &#C084FC✦'
+  layout:
+  - 'P   G   S'
+  - ' @@@@@@@ '
+  - ' <     > '
+  default-sorting-type: HIGHEST_POWER
+  remove-direction-icon-if-none-exists: true
+  exclude: []
+command:
+  enabled: true
+  permission: soulblast.menu
+  alias:
+  - soulgrimoire
+  - soulfire
+icons:
+  ' ':
+    type: FILLER
+    display:
+      material: PURPLE_STAINED_GLASS_PANE
+      name: ' '
+  G:
+    type: GOAL_SLOT
+    display:
+      material: END_CRYSTAL
+      name: '&#C084FC✦ &#721ddbКопилка обмена'
+      lore:
+      - ''
+      - '&#AAAAAA&#F3E8FFПКМ &#AAAAAA— выбрать заряд для склада'
+      - '&#AAAAAA&#F3E8FFЛКМ &#AAAAAAв списке — опыт / монеты'
+      - ''
+  P:
+    type: PLAYER_SETTINGS
+    display:
+      material: BLAZE_POWDER
+      name: '&#C084FC✦ &#E9D5FFИскра поджига'
+      lore:
+      - ''
+      - '&#AAAAAAСейчас&#757575: %auto_ignite_label%'
+      - ''
+      - '&#757575Нажмите, чтобы сменить.'
+      - '&#AAAAAAВлияет на &#F3E8FFвсе &#AAAAAAваши заряды'
+      - '&#AAAAAAпри установке.'
+      - ''
+  '@':
+    type: DYNAMITE_ENTRY
+    display:
+      material: TNT
+      name: '%soul_name%'
+      lore:
+      - ''
+      - ' %soul_desc_1% '
+      - ' %soul_desc_2% '
+      - '%soul_desc_gap%'
+      - '&#721ddbСила души&#757575: &#E9D5FF%blast_power%'
+      - '&#721ddbИскра до вспышки&#757575: &#86EFAC%fuse_seconds%с'
+      - ''
+  '<':
+    type: PREVIOUS_PAGE
+    display:
+      material: ARROW
+      name: '&#721ddb◀ &#C084FCПыль прошлого'
+      lore:
+      - ''
+      - '&#AAAAAAСтраница &#F3E8FF%current_page%&#757575/&#F3E8FF%max_pages%'
+      - ''
+      - '&#757575Нажмите, чтобы листать гримуар.'
+      - ''
+  '>':
+    type: NEXT_PAGE
+    display:
+      material: ARROW
+      name: '&#721ddbБуря впереди &#C084FC▶'
+      lore:
+      - ''
+      - '&#AAAAAAСтраница &#F3E8FF%current_page%&#757575/&#F3E8FF%max_pages%'
+      - ''
+      - '&#757575Нажмите, чтобы листать гримуар.'
+      - ''
+  S:
+    type: SORT_CYCLE
+    display:
+      material: HOPPER
+      name: '&#C084FC✦ &#721ddbСортировка душ'
+      lore:
+      - ''
+      - '&#AAAAAAПорядок&#757575: &#E9D5FF%sort_label%'
+      - ''
+      - '&#757575Нажмите, чтобы сменить круг силы.'
+      - ''

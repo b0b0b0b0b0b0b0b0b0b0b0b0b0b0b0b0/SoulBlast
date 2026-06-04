@@ -1,0 +1,84 @@
+﻿general:
+  destruction-mode: GRIEF
+  grief-unlimited-blocks: false
+  grief-max-blocks-per-explosion: 3200
+  grief-max-blocks-per-explosion-tick: 450
+  grief-max-sampling-rays: 0
+  grief-max-sampling-steps-per-tick: 16000
+  max-crater-fill-blocks-per-explosion: 0
+  grief-max-crater-fill-blocks-per-explosion: 45000
+  max-blocks-per-explosion-tick: 1800
+  max-blocks-per-explosion: 5500
+  max-sampling-rays: 576
+  max-sampling-steps-per-tick: 2400
+  sample-only-loaded-chunks: false
+  max-queued-explosions: 16
+  explosion-queue-interval-ticks: 1
+  default-auto-ignite: true
+fuse-recall:
+  enabled: true
+fuse-misfire:
+  enabled: true
+block-blast-resistance:
+  crying_obsidian_hint:
+    target: CRYING_OBSIDIAN
+    blast-resistance: 8.0
+entity-explosions:
+  ender_crystal:
+    entity-type: ENDER_CRYSTAL
+    damage-multiplier: 2.5
+    knockback-multiplier: 1.2
+    destroy-on-explosion: true
+  item_frame:
+    entity-type: ITEM_FRAME
+    damage-multiplier: 1.0
+    knockback-multiplier: 0.5
+    destroy-on-explosion: true
+economy:
+  use-vault-if-present: true
+  currency-symbol: "в›ѓ"
+database:
+  file-name: users/player-data.db
+protection-stones-integration:
+  enabled: true
+region-protection:
+  enabled: true
+  require-world-guard: true
+  margin-radius-multiplier: 2.0
+  region-names:
+    - spawn
+    - __spawn__
+  exempt-region-names: []
+  protect-build-deny-regions: true
+  protect-flag-deny-regions: true
+  worldguard-flags:
+    - soulblast-dynamite
+    - tnt
+    - other-explosion
+  check-explosion-footprint: true
+  worlds: []
+  bypass-permission: soulblast.region.bypass
+player-cooldown:
+  enabled: true
+  bypass-permission: soulblast.cooldown.bypass
+  apply-on-purchase: true
+  apply-on-use: true
+  shared-tier-cooldown: true
+  tiers:
+    - id: extreme
+      min-radius: 10
+      match-extreme-quality: true
+      purchase-seconds: 60
+      use-seconds: 30
+    - id: heavy
+      min-radius: 10
+      purchase-seconds: 45
+      use-seconds: 25
+    - id: medium
+      min-radius: 9
+      purchase-seconds: 30
+      use-seconds: 15
+  dynamites:
+    last_pyre:
+      purchase-seconds: 30
+      use-seconds: 30

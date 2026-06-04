@@ -1,0 +1,154 @@
+package bm.b0b0b0.SoulBlast.message;
+
+
+
+import bm.b0b0b0.SoulBlast.config.SerializerConfigs;
+
+import net.elytrium.serializer.language.object.YamlSerializable;
+
+
+
+public class MessagesConfig extends YamlSerializable {
+
+
+
+    public MessagesConfig() {
+
+        super(SerializerConfigs.YAML);
+
+    }
+
+
+
+    public String prefix = "&8[&cSoulBlast&8] &r";
+
+
+
+    public String noPermission = "{prefix}&cНет прав.";
+
+
+
+    public String playerOnly = "{prefix}&cТолько для игрока.";
+
+
+
+    public String unknownDynamite = "{prefix}&cДинамит &f{id} &cне найден.";
+
+
+
+    public String dynamiteGiven = "{prefix}&aВыдан &f{id} &7x{amount} &aигроку &f{player}.";
+
+
+
+    public String dynamiteReceived = "{prefix}&aВы получили &f{display} &7x{amount}.";
+
+
+
+    public String reloadDone = "{prefix}&aКонфигурация перезагружена.";
+
+
+
+    public String igniteDenied = "{prefix}&cЭтот динамит нельзя поджечь таким способом.";
+
+
+
+    public String commandUsage = "{prefix}&7/soulblast give <игрок> <id> [кол-во] | menu | reload &8| &7/soulgrimoire";
+
+
+
+    public String goalSelected = "{prefix}&5В копилку&8: &f{display}";
+
+    public String goalCleared = "{prefix}&7Копилка очищена.";
+
+    public String goalNotSelected = "{prefix}&7Сначала &fПКМ &7по заряду в списке.";
+
+    public String autoIgniteOn = "{prefix}&aПоджиг&8: &fвзрыв сразу при установке";
+
+    public String autoIgniteOff = "{prefix}&7Поджиг&8: &fтолько от огнива";
+
+
+
+    public String purchaseSuccess = "{prefix}&aОбмен совершён&8: &f{display}";
+
+
+
+    public String purchaseFailed = "{prefix}&cОбмен не удался.";
+
+
+
+    public String purchaseFailedMoney = "{prefix}&cНедостаточно монет.";
+
+
+
+    public String purchaseFailedExperience = "{prefix}&cНедостаточно опыта.";
+
+
+
+    public String purchaseFailedTnt = "{prefix}&cВ копилке не хватает TNT&8: &c{current}&8/&c{required}";
+
+    public String purchaseFailedInventory = "{prefix}&cОсвободите место в инвентаре.";
+
+    public String cooldownPurchaseActive = "{prefix}&cПокупка &f{display} &cчерез &f{remaining}&c.";
+
+    public String cooldownUseActive = "{prefix}&cЗаряд &f{display} &cможно использовать через &f{remaining}&c.";
+
+    public String purchaseRequirements = "{prefix}&7В списке не хватает&8: {missing}";
+
+    public String catalogPayNotRequired = "{prefix}&7Этот заряд платится только TNT — &fПКМ &7выбор, &fЛКМ &7по копилке";
+
+    public String copilkaReady = "{prefix}&aМожно забрать заряд. &7Нажми &fЛКМ &7по копилке";
+
+    public String tntDeposited = "{prefix}&7Внесено &c{amount} &7TNT &8(&c{current}&8/&c{required}&7)";
+
+    public String copilkaTntFull = "{prefix}&aСклад TNT полный &8(&c{current}&8/&c{required}&7). &7Забрать заряд — &fЛКМ &7по копилке";
+
+    public String tntDepositNone = "{prefix}&cНет обычного TNT в инвентаре.";
+
+
+
+    public String tntDepositComplete = "{prefix}&aСклад TNT уже полный.";
+
+    public String tntDepositNotRequired = "{prefix}&7Для этого заряда TNT не требуется.";
+
+    public String regionProtected = "{prefix}&cСлишком близко к региону &f{region}&c. Отступ &fx{margin} &cблоков.";
+
+    public String regionProtectedBlast = "{prefix}&cВзрыв заденет регион &f{region}&c.";
+
+    public String regionWorldguardMissing = "{prefix}&cНужен WorldGuard для защиты регионов.";
+
+    public String fuseRecallSuccess = "{prefix}&aЗаряд &f{display} &aснят с таймера и возвращён в инвентарь.";
+
+    public String fuseRecallNotOwner = "{prefix}&cЗабрать может только тот, кто поставил этот заряд.";
+
+    public String fuseRecallNoOwner = "{prefix}&cЭтот заряд нельзя забрать.";
+
+    public String fuseRecallWarhead = "{prefix}&cБоеголовку отдельно не забирают.";
+
+    public String fuseRecallDisabled = "{prefix}&cОтмена таймера отключена на сервере.";
+
+    public String fuseHologramName = "{display}";
+
+    public String fuseHologramTimer = "&7⏱ &f{fuse} &7сек";
+
+    public String fuseHologramRecall = "&8▸ &7ЛКМ &8— &fзабрать заряд";
+
+    public String fuseHologramMisfireWarning = "&e⚠ &7Возможна &cосечка";
+
+    public String fuseHologramMisfireActive = "&c&lОСЕЧКА";
+
+    public String fuseHologramMisfireIdle = "&7Фитиль погас — заряд на месте";
+
+    public String fuseHologramMisfireHint = "&8▸ &7ПКМ &8— &fподжечь или риск взрыва";
+
+    public String fuseHologramMisfireRecall = "&8▸ &7ЛКМ &8— &fзабрать заряд";
+
+    public String fuseMisfireRelight = "{prefix}&aЗаряд &f{display} &aснова на таймере.";
+
+    public String fuseMisfireDetonate = "{prefix}&c&lОсечка рванула! &f{display}";
+
+    public String fuseMisfireFizzle = "{prefix}&7Щелчок... ничего. ПКМ ещё раз или ЛКМ — забрать.";
+
+    public String fuseMisfireNotOwner = "{prefix}&cТолько поставивший может обезвредить осечку.";
+
+}
+

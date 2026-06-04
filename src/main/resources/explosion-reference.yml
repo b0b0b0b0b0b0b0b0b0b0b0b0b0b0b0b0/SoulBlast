@@ -1,0 +1,56 @@
+my_custom_charge:
+  item:
+    display-name: "&d&lМой заряд"
+    lore:
+      - "&7Пример полной настройки взрыва"
+  fuse-ticks: 80
+  explosion:
+    radius: 18.0
+    entity-damage: 16.0
+    power: 10.0
+    quality: HIGH
+    sampling-ray-override: 0
+    block-budget-multiplier: 1.0
+    create-fire: false
+    break-blocks: true
+    spread-across-ticks: true
+    algorithm:
+      ray-randomness: 1.15
+      ray-step: 0.35
+      drop-chance-multiplier: 1.0
+      edge-physics-only: true
+      fire-chance: 0.0
+      resistance-multiplier: 0.22
+      minimum-ray-power: 0.015
+    block-rules:
+      - target: stone_like
+        mode: BREAK
+        chance: 1.0
+      - target: OBSIDIAN
+        mode: BREAK
+        chance: 0.85
+      - target: CHEST
+        mode: DROP
+        chance: 1.0
+      - target: BEDROCK
+        mode: KEEP
+        chance: 1.0
+    post-actions:
+      - type: SOUND
+        param: entity_generic_explode
+        delay-ticks: 0
+      - type: PARTICLE
+        param: EXPLOSION_EMITTER
+        args:
+          - "24"
+          - "8"
+        delay-ticks: 2
+    effects:
+      remove-water: false
+      remove-lava: false
+      destroy-tnt-blocks: false
+      crater-fill:
+        enabled: false
+  purchase:
+    type: MONEY
+    amount: 100
