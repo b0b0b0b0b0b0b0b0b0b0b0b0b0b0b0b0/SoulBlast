@@ -2,7 +2,6 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.GeneralSettings;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
-import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -16,7 +15,7 @@ public final class HellscapeLightningService {
         if (bolts <= 0) {
             return;
         }
-        strikeSpread(job, general, bolts, drainSpread(job, general));
+        strikeDrainRing(job, bolts);
     }
 
     public void tickDuringMask(ExplosionJob job, GeneralSettings general) {
@@ -27,37 +26,72 @@ public final class HellscapeLightningService {
         float spread = general.griefLastPyreMaskLightningRadius > 0
                 ? general.griefLastPyreMaskLightningRadius
                 : job.getDynamite().explosion.radius;
-        strikeSpread(job, general, bolts, spread);
+        strikeSpread(job, bolts, spread, job.getCenter().getY() + 1.0);
     }
 
-    private void strikeSpread(ExplosionJob job, GeneralSettings general, int bolts, float spread) {
+    private void strikeDrainRing(ExplosionJob job, int bolts) {
+        Location center = job.getCenter();
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+        float maxRadius = resolveLiquidRadius(job);
+        int maxRing = Math.max(1, (int) Math.ceil(maxRadius));
+        int ring = Math.min(maxRing, Math.max(0, job.getTsarDrainRing()));
+        if (ring > maxRing) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        double baseY = center.getY() + 0.8 + random.nextDouble() * 1.6;
+        int cx = center.getBlockX();
+        int cz = center.getBlockZ();
+        for (int index = 0; index < bolts; index++) {
+            double angle = (Math.PI * 2.0 * index) / Math.max(1, bolts)
+                    + random.nextDouble() * 0.9
+                    + ring * 0.17;
+            double distance = ring <= 0
+                    ? random.nextDouble() * 1.4
+                    : ring + (random.nextDouble() - 0.5) * 0.85;
+            distance = Math.min(maxRadius, Math.max(0.0, distance));
+            double x = cx + Math.cos(angle) * distance;
+            double z = cz + Math.sin(angle) * distance;
+            Location strike = new Location(world, x, baseY + random.nextDouble() * 0.5, z);
+            world.strikeLightningEffect(strike);
+        }
+        if (random.nextInt(5) == 0) {
+            double pulseAngle = ring * 0.62 + random.nextDouble() * 0.4;
+            double pulseDist = Math.max(0.5, ring);
+            Location pulse = new Location(
+                    world,
+                    cx + Math.cos(pulseAngle) * pulseDist,
+                    baseY,
+                    cz + Math.sin(pulseAngle) * pulseDist
+            );
+            world.strikeLightningEffect(pulse);
+            world.playSound(pulse, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.5f, 0.82f + random.nextFloat() * 0.22f);
+        }
+    }
+
+    private void strikeSpread(ExplosionJob job, int bolts, float spread, double strikeY) {
         Location center = job.getCenter();
         World world = center.getWorld();
         if (world == null || spread <= 0f) {
             return;
         }
         ThreadLocalRandom random = ThreadLocalRandom.current();
+        int cx = center.getBlockX();
+        int cz = center.getBlockZ();
         for (int index = 0; index < bolts; index++) {
             double angle = random.nextDouble() * Math.PI * 2.0;
             double distance = Math.sqrt(random.nextDouble()) * spread;
-            int blockX = center.getBlockX() + (int) Math.round(Math.cos(angle) * distance);
-            int blockZ = center.getBlockZ() + (int) Math.round(Math.sin(angle) * distance);
-            int surfaceY = world.getHighestBlockYAt(blockX, blockZ, HeightMap.MOTION_BLOCKING);
-            Location strike = new Location(world, blockX + 0.5, surfaceY + 1.0, blockZ + 0.5);
+            double x = cx + Math.cos(angle) * distance;
+            double z = cz + Math.sin(angle) * distance;
+            Location strike = new Location(world, x, strikeY + random.nextDouble() * 0.4, z);
             world.strikeLightningEffect(strike);
         }
         if (random.nextInt(6) == 0) {
             world.playSound(center, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.55f, 0.85f + random.nextFloat() * 0.2f);
         }
-    }
-
-    private float drainSpread(ExplosionJob job, GeneralSettings general) {
-        float radius = general.griefLastPyreMaskLightningRadius > 0
-                ? general.griefLastPyreMaskLightningRadius
-                : resolveLiquidRadius(job);
-        int maxRing = Math.max(1, (int) Math.ceil(radius));
-        int ring = Math.min(maxRing, Math.max(1, job.getTsarDrainRing()));
-        return radius * (0.22f + (ring / (float) maxRing) * 0.78f);
     }
 
     private static float resolveLiquidRadius(ExplosionJob job) {

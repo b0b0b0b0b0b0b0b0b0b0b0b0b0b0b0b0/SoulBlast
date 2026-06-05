@@ -29,6 +29,8 @@ public final class ExplosionJob {
     private int tsarDrainRing;
     private int tsarMaskRing;
     private final LongOpenHashSet tsarMaskKeys = new LongOpenHashSet();
+    private final LongOpenHashSet tsarMedallionKeys = new LongOpenHashSet();
+    private boolean tsarMedallionQueued;
     private final ExplosionJobDiagnostics diagnostics = new ExplosionJobDiagnostics();
 
     public ExplosionJob(Location center, DynamiteDefinition dynamite, Entity source) {
@@ -131,6 +133,18 @@ public final class ExplosionJob {
 
     public LongOpenHashSet getTsarMaskKeys() {
         return tsarMaskKeys;
+    }
+
+    public LongOpenHashSet getTsarMedallionKeys() {
+        return tsarMedallionKeys;
+    }
+
+    public boolean isTsarMedallionQueued() {
+        return tsarMedallionQueued;
+    }
+
+    public void markTsarMedallionQueued() {
+        tsarMedallionQueued = true;
     }
 
     public void clearPhysicsEdgeKeys() {

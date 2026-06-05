@@ -41,6 +41,7 @@ public final class ExplosionQueueService {
     private final TsarDecoyBurstService tsarDecoyBursts;
     private final HellscapeLightningService hellscapeLightning = new HellscapeLightningService();
     private final TsarGradualMaskService tsarGradualMask;
+    private final HellscapeCenterMedallionService hellscapeCenterMedallion;
 
     public ExplosionQueueService(
             SoulBlast plugin,
@@ -70,6 +71,7 @@ public final class ExplosionQueueService {
         this.explosionDebug = explosionDebug;
         this.tsarDecoyBursts = new TsarDecoyBurstService(plugin.pluginKeys());
         this.tsarGradualMask = new TsarGradualMaskService(new HellscapeMaskPlanner(), blockApplier);
+        this.hellscapeCenterMedallion = new HellscapeCenterMedallionService(blockApplier);
         tsarGate.bindLauncher(this::launchTsar);
     }
 
@@ -393,17 +395,36 @@ public final class ExplosionQueueService {
         if (shouldStartTsarMask(job)) {
             startTsarMask(job);
         }
-        if (job.isHellMaskQueued()) {
+        boolean maskComplete = job.isHellMaskQueued() && tsarGradualMask.isComplete(job, limits);
+        if (job.isHellMaskQueued() && !maskComplete) {
             hellscapeLightning.tickDuringMask(job, general);
             if (maskBudget > 0) {
                 tsarGradualMask.tick(job, maskBudget, limits, general);
             }
         }
+        if (maskComplete) {
+            if (!job.isTsarMedallionQueued()) {
+                startTsarMedallion(job);
+            }
+            if (maskBudget > 0) {
+                hellscapeCenterMedallion.tick(job, maskBudget, general);
+            }
+        }
         if (job.isTsarBreakFinished()
                 && job.isTsarDrainFinished()
-                && tsarGradualMask.isComplete(job, limits)) {
+                && maskComplete
+                && hellscapeCenterMedallion.isComplete(job, general)) {
             finishTsarJob(job);
         }
+    }
+
+    private void startTsarMedallion(ExplosionJob job) {
+        if (job.isTsarMedallionQueued()) {
+            return;
+        }
+        job.markTsarMedallionQueued();
+        job.getTsarMedallionKeys().clear();
+        hellscapeCenterMedallion.planIntoJob(job, general);
     }
 
     private void processTsarBreakChunk(ExplosionJob job, int budget) {

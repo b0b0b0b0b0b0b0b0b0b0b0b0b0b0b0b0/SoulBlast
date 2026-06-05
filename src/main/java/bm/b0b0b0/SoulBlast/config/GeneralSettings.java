@@ -53,6 +53,15 @@ public class GeneralSettings {
     @Comment(@CommentValue("last_pyre: молний за тик во время осушения (0 = выкл)"))
     public int griefLastPyreDrainLightningPerTick = 2;
 
+    @Comment(@CommentValue("last_pyre: обсидиановый медальон в эпицентре после адской маски"))
+    public boolean griefLastPyreCenterMedallionEnabled = true;
+
+    @Comment(@CommentValue("last_pyre: радиус медальона в блоках (горизонталь)"))
+    public float griefLastPyreCenterMedallionRadius = 4.5f;
+
+    @Comment(@CommentValue("last_pyre: доля плачущего обсидиана 0.05–0.45 (остальное обычный)"))
+    public double griefLastPyreCenterMedallionCryingRatio = 0.20;
+
     @Comment(@CommentValue("Сколько блоков одного взрыва ломать за тик сервера (1500–2500 — баланс TPS)"))
     public int maxBlocksPerExplosionTick = 1800;
 
