@@ -12,6 +12,9 @@
   grief-last-pyre-mask-lightning-per-tick: 4
   grief-last-pyre-mask-lightning-radius: 0
   grief-last-pyre-inner-drain-radius: 18
+  grief-last-pyre-drain-blocks-per-tick: 200
+  grief-last-pyre-decoy-bursts-per-tick: 1
+  grief-last-pyre-drain-lightning-per-tick: 2
   max-blocks-per-explosion-tick: 1800
   max-blocks-per-explosion: 5500
   max-sampling-rays: 576
@@ -25,6 +28,7 @@ fuse-recall:
   enabled: true
 fuse-misfire:
   enabled: true
+  dud-disposal-seconds: 30
 block-blast-resistance:
   crying_obsidian_hint:
     target: CRYING_OBSIDIAN
@@ -67,25 +71,25 @@ region-protection:
 player-cooldown:
   enabled: true
   bypass-permission: soulblast.cooldown.bypass
-  apply-on-purchase: true
+  apply-on-purchase: false
   apply-on-use: true
   shared-tier-cooldown: true
   tiers:
     - id: extreme
       min-radius: 10
       match-extreme-quality: true
-      purchase-seconds: 60
+      purchase-seconds: 0
       use-seconds: 30
     - id: heavy
       min-radius: 10
-      purchase-seconds: 45
+      purchase-seconds: 0
       use-seconds: 25
     - id: medium
       min-radius: 9
-      purchase-seconds: 30
+      purchase-seconds: 0
       use-seconds: 15
   dynamites:
     last_pyre:
-      purchase-seconds: 30
+      purchase-seconds: 0
       use-seconds: 30
       no-bypass: true

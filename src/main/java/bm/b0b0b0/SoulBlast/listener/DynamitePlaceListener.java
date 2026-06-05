@@ -97,19 +97,37 @@ public final class DynamitePlaceListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        event.setCancelled(true);
         boolean autoIgnite = profileService.resolvesAutoIgnite(player, dynamite.autoIgniteOnPlace);
-        Block block = event.getBlockPlaced();
-        Location igniteAt = block.getLocation().add(0.5, 0.0, 0.5);
-        tracePlace(player, igniteAt, dynamite.id);
-        if (autoIgnite) {
-            primedService.spawnPrimed(igniteAt, dynamite, player);
-            consumePlacedItem(event);
+        if (!autoIgnite) {
             return;
         }
-        block.setType(Material.TNT, false);
-        placedTracker.track(block, dynamite.id);
+        event.setCancelled(true);
+        Location igniteAt = event.getBlockPlaced().getLocation().add(0.5, 0.0, 0.5);
+        tracePlace(player, igniteAt, dynamite.id);
+        primedService.spawnPrimed(igniteAt, dynamite, player);
         consumePlacedItem(event);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlaceMonitor(BlockPlaceEvent event) {
+        String dynamiteId = itemFactory.readDynamiteId(event.getItemInHand());
+        if (dynamiteId == null) {
+            return;
+        }
+        Optional<DynamiteDefinition> definition = registry.find(dynamiteId);
+        if (definition.isEmpty()) {
+            return;
+        }
+        DynamiteDefinition dynamite = definition.get();
+        if (profileService.resolvesAutoIgnite(event.getPlayer(), dynamite.autoIgniteOnPlace)) {
+            return;
+        }
+        Block block = event.getBlockPlaced();
+        if (block.getType() != Material.TNT) {
+            return;
+        }
+        placedTracker.track(block, dynamiteId);
+        tracePlace(event.getPlayer(), block.getLocation().add(0.5, 0.0, 0.5), dynamiteId);
     }
 
     private void tracePlace(Player player, Location at, String dynamiteId) {

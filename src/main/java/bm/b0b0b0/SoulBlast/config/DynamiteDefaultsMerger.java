@@ -106,7 +106,6 @@ public final class DynamiteDefaultsMerger {
         current.glow.colorRgb = defaults.glow.colorRgb;
         current.hologram.offsetY = defaults.hologram.offsetY;
         current.explosion.blockBudgetMultiplier = defaults.explosion.blockBudgetMultiplier;
-        current.purchase.purchaseCooldownSeconds = defaults.purchase.purchaseCooldownSeconds;
         current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;
     }
 
@@ -197,18 +196,14 @@ public final class DynamiteDefaultsMerger {
     }
 
     private void sanitizePurchaseCooldowns(DynamiteDefinition current, DynamiteDefinition defaults) {
-        if ("last_pyre".equals(current.id) && defaults.purchase.purchaseCooldownSeconds > 0) {
-            current.purchase.purchaseCooldownSeconds = defaults.purchase.purchaseCooldownSeconds;
+        if ("last_pyre".equals(current.id) && defaults.purchase.useCooldownSeconds > 0) {
             current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;
         }
         if (current.purchase.purchaseCooldownSeconds > 600) {
-            current.purchase.purchaseCooldownSeconds = defaults.purchase.purchaseCooldownSeconds;
+            current.purchase.purchaseCooldownSeconds = 0;
         }
         if (current.purchase.useCooldownSeconds > 600) {
             current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;
-        }
-        if (current.purchase.purchaseCooldownSeconds <= 0 && defaults.purchase.purchaseCooldownSeconds > 0) {
-            current.purchase.purchaseCooldownSeconds = defaults.purchase.purchaseCooldownSeconds;
         }
         if (current.purchase.useCooldownSeconds <= 0 && defaults.purchase.useCooldownSeconds > 0) {
             current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;

@@ -102,13 +102,13 @@ public final class HellscapeMaskPlanner {
                 if (surfaceY == Integer.MIN_VALUE) {
                     continue;
                 }
-                Material surface = pickSurfaceMaterial(distSq, innerSq, outerSq, x, z, fill, random);
+                boolean passage = HellscapePassageLayout.isPassage(cx, cz, x, z);
+                Material surface = passage
+                        ? Material.SOUL_SAND
+                        : pickSurfaceMaterial(distSq, innerSq, outerSq, x, z, fill, random);
                 enqueueReplace(job, applied, x, surfaceY, z, surface);
-                if (surface == Material.SOUL_SAND) {
-                    enqueueSoulFire(job, applied, world, x, surfaceY + 1, z);
-                }
                 if (distSq <= innerSq * 0.5) {
-                    planInnerDepth(job, applied, maxOps, world, x, z, surfaceY, fill, random, innerSq, distSq);
+                    planInnerDepth(job, applied, maxOps, world, x, z, surfaceY, fill, random, innerSq, distSq, passage);
                 }
             }
         }
@@ -125,7 +125,8 @@ public final class HellscapeMaskPlanner {
             CraterFillSettings fill,
             Random random,
             double innerSq,
-            double distSq
+            double distSq,
+            boolean passage
     ) {
         int layers = Math.min(4, Math.max(2, fill.floorDepth / 4));
         for (int depth = 1; depth <= layers; depth++) {
@@ -136,9 +137,12 @@ public final class HellscapeMaskPlanner {
             if (!isReplaceable(world.getBlockAt(x, y, z).getType())) {
                 continue;
             }
-            enqueueReplace(job, applied, x, y, z, Material.MAGMA_BLOCK);
+            Material deep = passage
+                    ? Material.SOUL_SAND
+                    : pickInnerDepthMaterial(random, depth);
+            enqueueReplace(job, applied, x, y, z, deep);
         }
-        if (distSq > innerSq * 0.22 || random.nextDouble() > 0.055) {
+        if (passage || distSq > innerSq * 0.22 || random.nextDouble() > 0.038) {
             return;
         }
         int lavaY = surfaceY + 1;
@@ -202,43 +206,36 @@ public final class HellscapeMaskPlanner {
             Random random
     ) {
         double distNorm = distSq / Math.max(1.0, outerSq);
-        double accent = Math.min(0.42, Math.max(0.12, fill.hellFloorLavaRatio + 0.08));
+        double accent = Math.min(0.46, Math.max(0.16, fill.hellFloorLavaRatio + 0.10));
         if (distSq <= innerSq * 0.35) {
-            accent *= 0.55;
+            accent *= 0.78;
         } else if (distSq > innerSq) {
-            accent = Math.min(0.48, accent + 0.14);
+            accent = Math.min(0.50, accent + 0.08);
         }
         int hash = (x * 31_412 ^ z * 17_171 ^ (int) (distNorm * 1000)) & 0xFFFF;
         double roll = (hash / 65535.0 + random.nextDouble() * 0.08) % 1.0;
-        if (roll < accent * 0.42) {
+        double soulShare = Math.min(0.32, accent * 0.92 + 0.05);
+        double nethShare = Math.min(0.18, accent * 0.52);
+        if (roll < soulShare) {
             return Material.SOUL_SAND;
         }
-        if (roll < accent * 0.72) {
+        if (roll < soulShare + nethShare) {
             return Material.NETHERRACK;
         }
         return Material.MAGMA_BLOCK;
     }
 
-    private void enqueueSoulFire(
-            ExplosionJob job,
-            LongOpenHashSet applied,
-            World world,
-            int x,
-            int y,
-            int z
-    ) {
-        y = clampY(world, y);
-        Material type = world.getBlockAt(x, y, z).getType();
-        if (!type.isAir() && type != Material.FIRE && type != Material.SOUL_FIRE) {
-            return;
+    private Material pickInnerDepthMaterial(Random random, int depth) {
+        double soulChance = depth <= 2 ? 0.34 : 0.20;
+        double nethChance = depth <= 2 ? 0.22 : 0.16;
+        double roll = random.nextDouble();
+        if (roll < soulChance) {
+            return Material.SOUL_SAND;
         }
-        long key = BlockCoordPacker.pack(x, y, z);
-        if (!applied.add(key)) {
-            return;
+        if (roll < soulChance + nethChance) {
+            return Material.NETHERRACK;
         }
-        job.getPendingBlocks().addLast(new ExplosionJob.BlockTarget(
-                x, y, z, ExplosionBlockAction.REPLACE, Material.SOUL_FIRE
-        ));
+        return Material.MAGMA_BLOCK;
     }
 
     private void enqueueReplace(

@@ -13,6 +13,7 @@ public final class PluginKeys {
     public final NamespacedKey menuIconType;
     public final NamespacedKey menuDynamiteId;
     public final NamespacedKey tsarWarhead;
+    public final NamespacedKey tsarDecoy;
     public final NamespacedKey primedDud;
 
     public PluginKeys(SoulBlast plugin) {
@@ -22,6 +23,7 @@ public final class PluginKeys {
         menuIconType = new NamespacedKey(plugin, "menu_icon_type");
         menuDynamiteId = new NamespacedKey(plugin, "menu_dynamite_id");
         tsarWarhead = new NamespacedKey(plugin, "tsar_warhead");
+        tsarDecoy = new NamespacedKey(plugin, "tsar_decoy");
         primedDud = new NamespacedKey(plugin, "primed_dud");
     }
 

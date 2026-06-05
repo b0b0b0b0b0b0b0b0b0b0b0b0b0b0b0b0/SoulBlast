@@ -27,6 +27,7 @@ import bm.b0b0b0.SoulBlast.listener.DynamiteIgniteListener;
 import bm.b0b0b0.SoulBlast.listener.DynamitePlaceListener;
 import bm.b0b0b0.SoulBlast.listener.PlayerConnectionListener;
 import bm.b0b0b0.SoulBlast.listener.PrimedDynamiteListener;
+import bm.b0b0b0.SoulBlast.listener.TsarDecoyTntListener;
 import bm.b0b0b0.SoulBlast.listener.PrimedDynamiteMisfireListener;
 import bm.b0b0b0.SoulBlast.listener.PrimedDynamiteRecallListener;
 import bm.b0b0b0.SoulBlast.listener.SoulGrimoireMenuListener;
@@ -550,6 +551,7 @@ public final class SoulBlast extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PrimedDynamiteRecallListener(this), this);
         getServer().getPluginManager().registerEvents(new PrimedDynamiteMisfireListener(this), this);
         getServer().getPluginManager().registerEvents(new PrimedDynamiteListener(this), this);
+        getServer().getPluginManager().registerEvents(new TsarDecoyTntListener(this), this);
         getServer().getPluginManager().registerEvents(
                 new PlayerConnectionListener(playerProfileService, dynamiteCooldownService),
                 this

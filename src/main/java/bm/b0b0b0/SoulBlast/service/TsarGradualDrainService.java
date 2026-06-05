@@ -23,10 +23,34 @@ public final class TsarGradualDrainService {
         }
         float radius = effects.liquidRadius > 0 ? effects.liquidRadius : job.getDynamite().explosion.radius;
         int maxRing = (int) Math.ceil(radius);
-        int ring = job.getTsarDrainRing();
-        if (ring > maxRing) {
-            return true;
+        while (budget > 0) {
+            int ring = job.getTsarDrainRing();
+            if (ring > maxRing) {
+                return true;
+            }
+            RingDrainResult result = drainRing(world, center, ring, radius, effects, general, budget);
+            budget = result.budgetLeft();
+            if (result.cleared() > 0 && ring % 4 == 0) {
+                playDrainPulse(world, center, ring);
+            }
+            if (result.ringComplete()) {
+                job.setTsarDrainRing(ring + 1);
+                continue;
+            }
+            break;
         }
+        return job.getTsarDrainRing() > maxRing;
+    }
+
+    private static RingDrainResult drainRing(
+            World world,
+            Location center,
+            int ring,
+            float radius,
+            ExplosionEffectsSettings effects,
+            GeneralSettings general,
+            int budget
+    ) {
         int cx = center.getBlockX();
         int cy = center.getBlockY();
         int cz = center.getBlockZ();
@@ -69,13 +93,7 @@ public final class TsarGradualDrainService {
                 }
             }
         }
-        if (cleared > 0 && ring % 4 == 0) {
-            playDrainPulse(world, center, ring);
-        }
-        if (ringComplete) {
-            job.setTsarDrainRing(ring + 1);
-        }
-        return job.getTsarDrainRing() > maxRing;
+        return new RingDrainResult(cleared, budget, ringComplete);
     }
 
     private static void playDrainPulse(World world, Location center, int ring) {
@@ -100,6 +118,9 @@ public final class TsarGradualDrainService {
                 || material == Material.SEAGRASS
                 || material == Material.TALL_SEAGRASS
                 || material == Material.BUBBLE_COLUMN;
+    }
+
+    private record RingDrainResult(int cleared, int budgetLeft, boolean ringComplete) {
     }
 
 }

@@ -44,6 +44,15 @@ public class GeneralSettings {
     @Comment(@CommentValue("last_pyre: мгновенное осушение ядра при детонации (блоков по горизонтали)"))
     public int griefLastPyreInnerDrainRadius = 18;
 
+    @Comment(@CommentValue("last_pyre: минимум жидкости за тик при кольцевом осушении (0 = только доля бюджета)"))
+    public int griefLastPyreDrainBlocksPerTick = 200;
+
+    @Comment(@CommentValue("last_pyre: фейковых летящих TNT за тик во время осушения (0 = выкл)"))
+    public int griefLastPyreDecoyBurstsPerTick = 1;
+
+    @Comment(@CommentValue("last_pyre: молний за тик во время осушения (0 = выкл)"))
+    public int griefLastPyreDrainLightningPerTick = 2;
+
     @Comment(@CommentValue("Сколько блоков одного взрыва ломать за тик сервера (1500–2500 — баланс TPS)"))
     public int maxBlocksPerExplosionTick = 1800;
 

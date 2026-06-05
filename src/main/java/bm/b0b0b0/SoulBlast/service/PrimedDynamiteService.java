@@ -265,8 +265,15 @@ public final class PrimedDynamiteService {
                 continue;
             }
             session.rememberLocation(primed.getLocation());
-            if (misfireService != null) {
+            if (session.isDudActive() && misfireService != null) {
+                if (misfireService.tickDudDisposal(primed, session)) {
+                    continue;
+                }
                 misfireService.maintainDudFuse(primed, session);
+                updateHologram(session, primed, 0);
+                applyGlowAnimation(session, primed);
+                visualService.tickParticles(primed, session.getDefinition(), session.getGlowPhase());
+                continue;
             }
             int fuseTicks = tickFuseCountdown(session, primed);
             updateHologram(session, primed, fuseTicks);
@@ -350,8 +357,13 @@ public final class PrimedDynamiteService {
         HologramSettings settings = definition.hologram;
         Map<String, String> placeholders = hologramPlaceholders(session, definition, fuseTicks);
         if (session.isDudActive()) {
-            StringBuilder dud = new StringBuilder(messages.format("fuse-hologram-misfire-active", placeholders));
-            dud.append('\n').append(messages.format("fuse-hologram-misfire-idle", Map.of()));
+            Map<String, String> dudPlaceholders = dudHologramPlaceholders(session, definition);
+            StringBuilder dud = new StringBuilder(messages.format("fuse-hologram-misfire-active", dudPlaceholders));
+            if (session.getDudDisposalTicksRemaining() > 0) {
+                dud.append('\n').append(messages.format("fuse-hologram-misfire-timer", dudPlaceholders));
+            } else {
+                dud.append('\n').append(messages.format("fuse-hologram-misfire-idle", Map.of()));
+            }
             dud.append('\n').append(messages.format("fuse-hologram-misfire-hint", Map.of()));
             if (fuseRecall.enabled && session.getPlacerId() != null) {
                 dud.append('\n').append(messages.format("fuse-hologram-misfire-recall", Map.of()));
@@ -368,6 +380,22 @@ public final class PrimedDynamiteService {
             text.append('\n').append(messages.format("fuse-hologram-recall", Map.of()));
         }
         return text.toString();
+    }
+
+    private Map<String, String> dudHologramPlaceholders(
+            PrimedDynamiteSession session,
+            DynamiteDefinition definition
+    ) {
+        int secondsLeft = fuseSecondsLeft(session.getDudDisposalTicksRemaining());
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("dyn_id", definition.id);
+        placeholders.put(
+                "display",
+                TextUtil.apply(definition.item.displayName, Map.of("dyn_id", definition.id))
+        );
+        placeholders.put("fuse", Integer.toString(secondsLeft));
+        placeholders.put("color", fuseUrgencyColor(secondsLeft));
+        return placeholders;
     }
 
     private Map<String, String> hologramPlaceholders(

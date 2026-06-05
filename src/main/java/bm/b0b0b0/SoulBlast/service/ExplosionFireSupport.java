@@ -59,22 +59,24 @@ public final class ExplosionFireSupport {
                 int x = cx + dx;
                 int z = cz + dz;
                 world.getChunkAt(x >> 4, z >> 4);
+                if (HellscapePassageLayout.isPassage(cx, cz, x, z)) {
+                    continue;
+                }
                 for (int y = Math.max(minY, cy - horizontal); y <= Math.min(maxY, cy + 12); y++) {
                     Block block = world.getBlockAt(x, y, z);
-                    if (!isHellFuel(block.getType())) {
+                    Material fuel = block.getType();
+                    if (!isHellFuel(fuel) || fuel == Material.SOUL_SAND) {
                         continue;
                     }
                     Block above = block.getRelative(0, 1, 0);
-                    if (!above.getType().isAir() && above.getType() != Material.FIRE) {
+                    Material aboveType = above.getType();
+                    if (!aboveType.isAir() && aboveType != Material.FIRE && aboveType != Material.SOUL_FIRE) {
                         continue;
                     }
-                    if (random.nextDouble() > 0.38) {
+                    if (!shouldScatterHellFire(x, z, y)) {
                         continue;
                     }
-                    Material fire = block.getType() == Material.SOUL_SAND
-                            ? Material.SOUL_FIRE
-                            : Material.FIRE;
-                    above.setType(fire, false);
+                    above.setType(Material.FIRE, false);
                 }
             }
         }
@@ -85,6 +87,17 @@ public final class ExplosionFireSupport {
                 || type == Material.LAVA
                 || type == Material.NETHERRACK
                 || type == Material.SOUL_SAND;
+    }
+
+    private boolean shouldScatterHellFire(int x, int z, int y) {
+        double field = Math.sin(x * 0.27 + z * 0.19 + y * 0.07)
+                * Math.cos(z * 0.23 - x * 0.11 - y * 0.05);
+        double ripple = Math.sin((x - z) * 0.13 + y * 0.04) * 0.55;
+        double density = (field + ripple + 1.42) / 2.84;
+        if (density < 0.64) {
+            return false;
+        }
+        return random.nextDouble() < 0.28;
     }
 
     public void removeUnsupportedFire(Location center, float radius) {

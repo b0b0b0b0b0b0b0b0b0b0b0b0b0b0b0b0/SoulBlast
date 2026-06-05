@@ -38,6 +38,7 @@ public final class ExplosionQueueService {
     private final TsarExplosionGate tsarGate;
     private final ExplosionDebugTrace explosionDebug;
     private final TsarGradualDrainService tsarGradualDrain = new TsarGradualDrainService();
+    private final TsarDecoyBurstService tsarDecoyBursts;
     private final HellscapeLightningService hellscapeLightning = new HellscapeLightningService();
     private final TsarGradualMaskService tsarGradualMask;
 
@@ -67,6 +68,7 @@ public final class ExplosionQueueService {
         this.postActionRunner = postActionRunner;
         this.tsarGate = tsarGate;
         this.explosionDebug = explosionDebug;
+        this.tsarDecoyBursts = new TsarDecoyBurstService(plugin.pluginKeys());
         this.tsarGradualMask = new TsarGradualMaskService(new HellscapeMaskPlanner(), blockApplier);
         tsarGate.bindLauncher(this::launchTsar);
     }
@@ -187,6 +189,18 @@ public final class ExplosionQueueService {
         return Math.min(
                 limits.maxBlocksPerExplosionTick() * 2,
                 Math.max(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier))
+        );
+    }
+
+    private int resolveTsarDrainBudget(int budget) {
+        int share = Math.max(1, budget * 9 / 20);
+        int floor = Math.max(0, general.griefLastPyreDrainBlocksPerTick);
+        if (floor <= 0) {
+            return share;
+        }
+        return Math.min(
+                limits.maxBlocksPerExplosionTick() * 2,
+                Math.max(share, floor)
         );
     }
 
@@ -361,8 +375,8 @@ public final class ExplosionQueueService {
     }
 
     private void processTsarOrchestration(ExplosionJob job, int budget) {
-        int breakBudget = Math.max(1, budget * 2 / 5);
-        int drainBudget = Math.max(1, budget * 2 / 5);
+        int breakBudget = Math.max(1, budget * 7 / 20);
+        int drainBudget = resolveTsarDrainBudget(budget);
         int maskBudget = Math.max(0, budget - breakBudget - drainBudget);
         if (!job.isTsarBreakFinished()) {
             processTsarBreakChunk(job, breakBudget);
@@ -370,6 +384,10 @@ public final class ExplosionQueueService {
         if (!job.isTsarDrainFinished()) {
             if (tsarGradualDrain.tick(job, drainBudget, general)) {
                 job.markTsarDrainFinished();
+                tsarDecoyBursts.purgeNear(job);
+            } else {
+                tsarDecoyBursts.tick(job, general);
+                hellscapeLightning.tickDuringDrain(job, general);
             }
         }
         if (shouldStartTsarMask(job)) {
@@ -417,6 +435,7 @@ public final class ExplosionQueueService {
         if (job.isHellMaskQueued()) {
             return;
         }
+        tsarDecoyBursts.purgeNear(job);
         job.setPhase(ExplosionJobPhase.CRATER);
         job.setTsarMaskRing(Math.max(0, general.griefLastPyreInnerDrainRadius));
         job.getTsarMaskKeys().clear();

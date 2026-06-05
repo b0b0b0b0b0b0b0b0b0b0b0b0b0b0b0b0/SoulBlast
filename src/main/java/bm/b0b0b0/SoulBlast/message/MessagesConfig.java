@@ -138,6 +138,8 @@ public class MessagesConfig extends YamlSerializable {
 
     public String fuseHologramMisfireActive = "&c&lОСЕЧКА";
 
+    public String fuseHologramMisfireTimer = "&7⏱ {color}{fuse}";
+
     public String fuseHologramMisfireIdle = "&7Фитиль погас — заряд на месте";
 
     public String fuseHologramMisfireHint = "&8▸ &7ПКМ &8— &fподжечь или риск взрыва";
@@ -151,6 +153,8 @@ public class MessagesConfig extends YamlSerializable {
     public String fuseMisfireFizzle = "{prefix}&7Щелчок... ничего. ПКМ ещё раз или ЛКМ — забрать.";
 
     public String fuseMisfireNotOwner = "{prefix}&cТолько поставивший может обезвредить осечку.";
+
+    public String fuseMisfireExpired = "{prefix}&7Осечка &f{display} &7сгнила — время вышло, заряд уничтожен.";
 
     public String psHologramUsage = "{prefix}&7/psholo &fhide &7| &fshow &7| &ftoggle &8— затем &fЛКМ &8по своему блоку привата";
 

@@ -179,8 +179,9 @@ public final class DynamitePresets {
         d.explosion.effects.detonateOtherPrimed = true;
         d.hologram.offsetY = 1.5;
         applyHellScar(d, 52.0f, 14);
+        d.explosion.effects.craterFill.hellFloorLavaRatio = 0.14;
         d.explosion.effects.craterFill.magmaShellWidth = 16.0f;
-        d.explosion.effects.craterFill.magmaShellLayers = 14;
+        d.explosion.effects.craterFill.magmaShellLayers = 12;
         d.explosion.effects.craterFill.floorMaterial = "MAGMA_BLOCK";
         d.explosion.effects.craterFill.coatMaterial = "LAVA";
         d.explosion.effects.craterFill.allowLavaCoat = true;
@@ -190,7 +191,6 @@ public final class DynamitePresets {
         applyApocalypseEffects(d);
         applyTsarWarheads(d);
         applyPurchase(d, PurchaseType.VANILLA_TNT, 16);
-        d.purchase.purchaseCooldownSeconds = 30;
         d.purchase.useCooldownSeconds = 30;
         return d;
     }

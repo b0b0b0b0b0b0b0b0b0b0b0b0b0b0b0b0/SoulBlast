@@ -33,6 +33,13 @@ public final class FuseMisfireResolver {
         return ThreadLocalRandom.current().nextDouble() < clampChance(settings.endChance);
     }
 
+    public int dudDisposalTicks() {
+        if (!global.enabled || global.dudDisposalSeconds <= 0) {
+            return 0;
+        }
+        return global.dudDisposalSeconds * 20;
+    }
+
     public ActivateOutcome rollActivate(DynamiteDefinition definition) {
         FuseMisfireSettings settings = resolve(definition);
         if (!settings.enabled) {

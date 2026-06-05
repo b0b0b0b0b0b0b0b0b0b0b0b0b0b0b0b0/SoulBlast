@@ -17,7 +17,7 @@ public class PlayerCooldownSettings {
     public String bypassPermission = "soulblast.cooldown.bypass";
 
     @Comment(@CommentValue("Кулдаун при покупке / выдаче из меню"))
-    public boolean applyOnPurchase = true;
+    public boolean applyOnPurchase = false;
 
     @Comment(@CommentValue("Кулдаун при установке и поджоге"))
     public boolean applyOnUse = true;
@@ -36,19 +36,19 @@ public class PlayerCooldownSettings {
         extreme.id = "extreme";
         extreme.minRadius = 85.0f;
         extreme.matchExtremeQuality = true;
-        extreme.purchaseSeconds = 60;
+        extreme.purchaseSeconds = 0;
         extreme.useSeconds = 30;
         list.add(extreme);
         PlayerCooldownTier heavy = new PlayerCooldownTier();
         heavy.id = "heavy";
         heavy.minRadius = 38.0f;
-        heavy.purchaseSeconds = 45;
+        heavy.purchaseSeconds = 0;
         heavy.useSeconds = 25;
         list.add(heavy);
         PlayerCooldownTier medium = new PlayerCooldownTier();
         medium.id = "medium";
         medium.minRadius = 28.0f;
-        medium.purchaseSeconds = 30;
+        medium.purchaseSeconds = 0;
         medium.useSeconds = 15;
         list.add(medium);
         return list;
@@ -57,7 +57,7 @@ public class PlayerCooldownSettings {
     private static Map<String, PlayerCooldownDynamiteOverride> defaultDynamites() {
         Map<String, PlayerCooldownDynamiteOverride> map = new LinkedHashMap<>();
         PlayerCooldownDynamiteOverride lastPyre = new PlayerCooldownDynamiteOverride();
-        lastPyre.purchaseSeconds = 30;
+        lastPyre.purchaseSeconds = 0;
         lastPyre.useSeconds = 30;
         lastPyre.noBypass = true;
         map.put("last_pyre", lastPyre);

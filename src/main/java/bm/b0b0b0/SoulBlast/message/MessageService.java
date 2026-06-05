@@ -85,6 +85,7 @@ public final class MessageService {
             case "fuse-hologram-recall" -> messages.fuseHologramRecall;
             case "fuse-hologram-misfire-warning" -> messages.fuseHologramMisfireWarning;
             case "fuse-hologram-misfire-active" -> messages.fuseHologramMisfireActive;
+            case "fuse-hologram-misfire-timer" -> messages.fuseHologramMisfireTimer;
             case "fuse-hologram-misfire-idle" -> messages.fuseHologramMisfireIdle;
             case "fuse-hologram-misfire-hint" -> messages.fuseHologramMisfireHint;
             case "fuse-hologram-misfire-recall" -> messages.fuseHologramMisfireRecall;
@@ -92,6 +93,7 @@ public final class MessageService {
             case "fuse-misfire-detonate" -> messages.fuseMisfireDetonate;
             case "fuse-misfire-fizzle" -> messages.fuseMisfireFizzle;
             case "fuse-misfire-not-owner" -> messages.fuseMisfireNotOwner;
+            case "fuse-misfire-expired" -> messages.fuseMisfireExpired;
             case "ps-hologram-usage" -> messages.psHologramUsage;
             case "ps-hologram-armed-hide" -> messages.psHologramArmedHide;
             case "ps-hologram-armed-show" -> messages.psHologramArmedShow;

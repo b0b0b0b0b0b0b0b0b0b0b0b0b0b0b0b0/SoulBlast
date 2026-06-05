@@ -56,6 +56,7 @@ public final class PrimedDynamiteMisfireService {
     public void enterDudState(TNTPrimed primed, PrimedDynamiteSession session) {
         session.setDudActive(true);
         session.setPendingDud(false);
+        session.setDudDisposalTicksRemaining(resolver.dudDisposalTicks());
         session.rememberLocation(primed.getLocation());
         applyDudEntityState(primed);
         FuseMisfireSettings settings = resolver.resolve(session.getDefinition());
@@ -71,7 +72,19 @@ public final class PrimedDynamiteMisfireService {
     public void disposeDud(PrimedDynamiteSession session) {
         session.setDudActive(false);
         session.setPendingDud(false);
+        session.setDudDisposalTicksRemaining(0);
         session.bumpDudReinforceGeneration();
+    }
+
+    public boolean tickDudDisposal(TNTPrimed primed, PrimedDynamiteSession session) {
+        if (!session.isDudActive() || session.getDudDisposalTicksRemaining() <= 0) {
+            return false;
+        }
+        if (session.tickDudDisposal() > 0) {
+            return false;
+        }
+        expireDud(primed, session);
+        return true;
     }
 
     public void maintainDudFuse(TNTPrimed primed, PrimedDynamiteSession session) {
@@ -142,7 +155,7 @@ public final class PrimedDynamiteMisfireService {
     }
 
     private void relight(TNTPrimed primed, PrimedDynamiteSession session, DynamiteDefinition definition) {
-        session.setDudActive(false);
+        disposeDud(session);
         session.setPendingDud(resolver.rollPendingDud(definition));
         clearDudEntityState(primed);
         primed.setFuseTicks(definition.fuseTicks);
@@ -197,6 +210,23 @@ public final class PrimedDynamiteMisfireService {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException ignored) {
             return null;
+        }
+    }
+
+    private void expireDud(TNTPrimed primed, PrimedDynamiteSession session) {
+        DynamiteDefinition definition = session.getDefinition();
+        UUID placerId = session.getPlacerId();
+        disposeDud(session);
+        if (!primed.isDead()) {
+            primed.remove();
+        }
+        primedService.disposeSession(session);
+        if (placerId == null) {
+            return;
+        }
+        Player player = plugin.getServer().getPlayer(placerId);
+        if (player != null) {
+            notify(player, "fuse-misfire-expired", definition);
         }
     }
 

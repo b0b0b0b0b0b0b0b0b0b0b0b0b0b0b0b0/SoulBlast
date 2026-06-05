@@ -27,6 +27,7 @@ public final class PrimedDynamiteSession {
     private int dudReinforceGeneration;
     private boolean detonationTriggered;
     private int fuseTicksRemaining;
+    private int dudDisposalTicksRemaining;
     private final List<BukkitTask> fuseLightningTasks = new ArrayList<>();
 
     public PrimedDynamiteSession(TNTPrimed entity, String dynamiteId, DynamiteDefinition definition, UUID placerId) {
@@ -168,6 +169,22 @@ public final class PrimedDynamiteSession {
         }
         fuseTicksRemaining--;
         return fuseTicksRemaining;
+    }
+
+    public int getDudDisposalTicksRemaining() {
+        return dudDisposalTicksRemaining;
+    }
+
+    public void setDudDisposalTicksRemaining(int dudDisposalTicksRemaining) {
+        this.dudDisposalTicksRemaining = Math.max(0, dudDisposalTicksRemaining);
+    }
+
+    public int tickDudDisposal() {
+        if (dudDisposalTicksRemaining <= 0) {
+            return 0;
+        }
+        dudDisposalTicksRemaining--;
+        return dudDisposalTicksRemaining;
     }
 
 }
