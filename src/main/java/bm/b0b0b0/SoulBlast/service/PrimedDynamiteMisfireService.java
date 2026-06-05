@@ -63,6 +63,17 @@ public final class PrimedDynamiteMisfireService {
         scheduleDudReinforce(session);
     }
 
+    public void restoreDudEntity(TNTPrimed primed, PrimedDynamiteSession session) {
+        session.rememberLocation(primed.getLocation());
+        applyDudEntityState(primed);
+    }
+
+    public void disposeDud(PrimedDynamiteSession session) {
+        session.setDudActive(false);
+        session.setPendingDud(false);
+        session.bumpDudReinforceGeneration();
+    }
+
     public void maintainDudFuse(TNTPrimed primed, PrimedDynamiteSession session) {
         if (!session.isDudActive()) {
             return;
@@ -135,6 +146,7 @@ public final class PrimedDynamiteMisfireService {
         session.setPendingDud(resolver.rollPendingDud(definition));
         clearDudEntityState(primed);
         primed.setFuseTicks(definition.fuseTicks);
+        session.setFuseTicksRemaining(definition.fuseTicks);
         if (definition.disableGravity) {
             primed.setGravity(false);
         }
@@ -156,16 +168,16 @@ public final class PrimedDynamiteMisfireService {
     }
 
     private void scheduleDudReinforce(PrimedDynamiteSession session) {
-        UUID entityId = session.getEntityId();
-        plugin.getServer().getScheduler().runTask(plugin, () -> reinforceDudEntity(session, entityId));
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> reinforceDudEntity(session, entityId), 1L);
+        int generation = session.bumpDudReinforceGeneration();
+        plugin.getServer().getScheduler().runTask(plugin, () -> reinforceDudEntity(session, generation));
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> reinforceDudEntity(session, generation), 1L);
     }
 
-    private void reinforceDudEntity(PrimedDynamiteSession session, UUID expectedId) {
-        if (!session.isDudActive()) {
+    private void reinforceDudEntity(PrimedDynamiteSession session, int generation) {
+        if (!session.isDudActive() || session.getDudReinforceGeneration() != generation) {
             return;
         }
-        Entity entity = plugin.getServer().getEntity(expectedId);
+        Entity entity = plugin.getServer().getEntity(session.getEntityId());
         if (entity instanceof TNTPrimed primed && primed.isValid() && !primed.isDead()) {
             applyDudEntityState(primed);
             return;

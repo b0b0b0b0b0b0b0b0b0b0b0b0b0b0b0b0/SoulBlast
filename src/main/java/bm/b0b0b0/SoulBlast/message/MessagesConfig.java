@@ -92,6 +92,8 @@ public class MessagesConfig extends YamlSerializable {
 
     public String cooldownUseActive = "{prefix}&cЗаряд &f{display} &cможно использовать через &f{remaining}&c.";
 
+    public String lastPyreFuseActive = "{prefix}&c&f{display} &cуже на фитиле — дождись взрыва.";
+
     public String purchaseRequirements = "{prefix}&7В списке не хватает&8: {missing}";
 
     public String catalogPayNotRequired = "{prefix}&7Этот заряд платится только TNT — &fПКМ &7выбор, &fЛКМ &7по копилке";
@@ -128,7 +130,7 @@ public class MessagesConfig extends YamlSerializable {
 
     public String fuseHologramName = "{display}";
 
-    public String fuseHologramTimer = "&7⏱ &f{fuse} &7сек";
+    public String fuseHologramTimer = "&7⏱ {color}{fuse}";
 
     public String fuseHologramRecall = "&8▸ &7ЛКМ &8— &fзабрать заряд";
 

@@ -74,6 +74,7 @@ public final class MessageService {
             case "region-worldguard-missing" -> messages.regionWorldguardMissing;
             case "cooldown-purchase-active" -> messages.cooldownPurchaseActive;
             case "cooldown-use-active" -> messages.cooldownUseActive;
+            case "last-pyre-fuse-active" -> messages.lastPyreFuseActive;
             case "fuse-recall-success" -> messages.fuseRecallSuccess;
             case "fuse-recall-not-owner" -> messages.fuseRecallNotOwner;
             case "fuse-recall-no-owner" -> messages.fuseRecallNoOwner;

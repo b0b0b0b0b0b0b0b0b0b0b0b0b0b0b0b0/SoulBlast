@@ -4,6 +4,7 @@ public enum ExplosionBlockAction {
 
     BREAK,
     CLEAR_LIQUID,
-    PLACE
+    PLACE,
+    REPLACE
 
 }

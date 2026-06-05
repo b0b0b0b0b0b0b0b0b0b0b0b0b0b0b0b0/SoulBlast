@@ -7,11 +7,17 @@
   grief-max-sampling-steps-per-tick: 16000
   max-crater-fill-blocks-per-explosion: 0
   grief-max-crater-fill-blocks-per-explosion: 45000
+  grief-last-pyre-mask-burst-on-detonate: 0
+  grief-last-pyre-queue-tick-multiplier: 1.0
+  grief-last-pyre-mask-lightning-per-tick: 4
+  grief-last-pyre-mask-lightning-radius: 0
+  grief-last-pyre-inner-drain-radius: 18
   max-blocks-per-explosion-tick: 1800
   max-blocks-per-explosion: 5500
   max-sampling-rays: 576
   max-sampling-steps-per-tick: 2400
   sample-only-loaded-chunks: false
+  explosion-debug: false
   max-queued-explosions: 16
   explosion-queue-interval-ticks: 1
   default-auto-ignite: true
@@ -82,3 +88,4 @@ player-cooldown:
     last_pyre:
       purchase-seconds: 30
       use-seconds: 30
+      no-bypass: true

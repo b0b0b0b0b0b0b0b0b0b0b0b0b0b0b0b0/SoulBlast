@@ -18,12 +18,15 @@ public final class PrimedDynamiteSession {
     private final DynamiteDefinition definition;
     private final UUID placerId;
     private TextDisplay hologram;
+    private UUID hologramId;
     private int glowPhase;
     private boolean fuseLightningTriggered;
     private boolean warheadsLaunched;
     private boolean pendingDud;
     private boolean dudActive;
+    private int dudReinforceGeneration;
     private boolean detonationTriggered;
+    private int fuseTicksRemaining;
     private final List<BukkitTask> fuseLightningTasks = new ArrayList<>();
 
     public PrimedDynamiteSession(TNTPrimed entity, String dynamiteId, DynamiteDefinition definition, UUID placerId) {
@@ -32,6 +35,7 @@ public final class PrimedDynamiteSession {
         this.definition = definition;
         this.placerId = placerId;
         this.glowPhase = 0;
+        this.fuseTicksRemaining = definition.fuseTicks;
     }
 
     public UUID getPlacerId() {
@@ -68,8 +72,18 @@ public final class PrimedDynamiteSession {
         return hologram;
     }
 
+    public UUID getHologramId() {
+        return hologramId;
+    }
+
     public void setHologram(TextDisplay hologram) {
         this.hologram = hologram;
+        this.hologramId = hologram == null ? null : hologram.getUniqueId();
+    }
+
+    public void clearHologram() {
+        this.hologram = null;
+        this.hologramId = null;
     }
 
     public int getGlowPhase() {
@@ -123,12 +137,37 @@ public final class PrimedDynamiteSession {
         this.dudActive = dudActive;
     }
 
+    public int getDudReinforceGeneration() {
+        return dudReinforceGeneration;
+    }
+
+    public int bumpDudReinforceGeneration() {
+        dudReinforceGeneration++;
+        return dudReinforceGeneration;
+    }
+
     public boolean tryMarkDetonation() {
         if (detonationTriggered) {
             return false;
         }
         detonationTriggered = true;
         return true;
+    }
+
+    public int getFuseTicksRemaining() {
+        return fuseTicksRemaining;
+    }
+
+    public void setFuseTicksRemaining(int fuseTicksRemaining) {
+        this.fuseTicksRemaining = Math.max(0, fuseTicksRemaining);
+    }
+
+    public int tickFuseCountdown() {
+        if (fuseTicksRemaining <= 0) {
+            return 0;
+        }
+        fuseTicksRemaining--;
+        return fuseTicksRemaining;
     }
 
 }

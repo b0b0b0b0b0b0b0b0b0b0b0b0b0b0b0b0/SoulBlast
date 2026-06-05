@@ -21,6 +21,15 @@ public final class ExplosionJob {
     private final LongOpenHashSet physicsEdgeKeys = new LongOpenHashSet();
     private final LongOpenHashSet psDurabilityHitKeys = new LongOpenHashSet();
     private ExplosionJobPhase phase = ExplosionJobPhase.BREAK;
+    private boolean presentationPlayed;
+    private boolean hellMaskQueued;
+    private boolean tsarOrchestrated;
+    private boolean tsarBreakFinished;
+    private boolean tsarDrainFinished;
+    private int tsarDrainRing;
+    private int tsarMaskRing;
+    private final LongOpenHashSet tsarMaskKeys = new LongOpenHashSet();
+    private final ExplosionJobDiagnostics diagnostics = new ExplosionJobDiagnostics();
 
     public ExplosionJob(Location center, DynamiteDefinition dynamite, Entity source) {
         this.center = ExplosionCenter.snap(center);
@@ -64,6 +73,66 @@ public final class ExplosionJob {
         this.phase = phase;
     }
 
+    public boolean isPresentationPlayed() {
+        return presentationPlayed;
+    }
+
+    public void markPresentationPlayed() {
+        presentationPlayed = true;
+    }
+
+    public boolean isHellMaskQueued() {
+        return hellMaskQueued;
+    }
+
+    public void markHellMaskQueued() {
+        hellMaskQueued = true;
+    }
+
+    public boolean isTsarOrchestrated() {
+        return tsarOrchestrated;
+    }
+
+    public void markTsarOrchestrated() {
+        tsarOrchestrated = true;
+    }
+
+    public boolean isTsarBreakFinished() {
+        return tsarBreakFinished;
+    }
+
+    public void markTsarBreakFinished() {
+        tsarBreakFinished = true;
+    }
+
+    public boolean isTsarDrainFinished() {
+        return tsarDrainFinished;
+    }
+
+    public void markTsarDrainFinished() {
+        tsarDrainFinished = true;
+    }
+
+    public int getTsarDrainRing() {
+        return tsarDrainRing;
+    }
+
+    public void setTsarDrainRing(int tsarDrainRing) {
+        this.tsarDrainRing = tsarDrainRing;
+    }
+
+    public int getTsarMaskRing() {
+        return tsarMaskRing;
+    }
+
+    public void setTsarMaskRing(int tsarMaskRing) {
+        this.tsarMaskRing = tsarMaskRing;
+    }
+
+    public LongOpenHashSet getTsarMaskKeys() {
+        return tsarMaskKeys;
+    }
+
     public void clearPhysicsEdgeKeys() {
         physicsEdgeKeys.clear();
     }
@@ -85,6 +154,10 @@ public final class ExplosionJob {
 
     public boolean alreadyPsDurabilityHit(int x, int y, int z) {
         return psDurabilityHitKeys.contains(BlockCoordPacker.pack(x, y, z));
+    }
+
+    public ExplosionJobDiagnostics getDiagnostics() {
+        return diagnostics;
     }
 
     public record BlockTarget(

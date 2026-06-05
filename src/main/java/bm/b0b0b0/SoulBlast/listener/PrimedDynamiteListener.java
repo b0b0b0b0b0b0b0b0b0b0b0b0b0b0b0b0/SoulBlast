@@ -6,7 +6,6 @@ import bm.b0b0b0.SoulBlast.model.PrimedDynamiteSession;
 import bm.b0b0b0.SoulBlast.service.PrimedDynamiteDetonationService;
 import bm.b0b0b0.SoulBlast.service.PrimedDynamiteMisfireService;
 import bm.b0b0b0.SoulBlast.service.PrimedDynamiteService;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -18,24 +17,21 @@ import java.util.Optional;
 
 public final class PrimedDynamiteListener implements Listener {
 
-    private final PrimedDynamiteService primedService;
-    private final PrimedDynamiteMisfireService misfireService;
-    private final PrimedDynamiteDetonationService detonationService;
+    private final SoulBlast plugin;
 
-    public PrimedDynamiteListener(
-            SoulBlast plugin,
-            PrimedDynamiteService primedService,
-            PrimedDynamiteMisfireService misfireService,
-            PrimedDynamiteDetonationService detonationService
-    ) {
-        this.primedService = primedService;
-        this.misfireService = misfireService;
-        this.detonationService = detonationService;
+    public PrimedDynamiteListener(SoulBlast plugin) {
+        this.plugin = plugin;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPrime(ExplosionPrimeEvent event) {
         if (!(event.getEntity() instanceof TNTPrimed primed)) {
+            return;
+        }
+        PrimedDynamiteService primedService = plugin.getPrimedDynamiteService();
+        PrimedDynamiteMisfireService misfireService = plugin.getPrimedDynamiteMisfireService();
+        PrimedDynamiteDetonationService detonationService = plugin.getPrimedDynamiteDetonationService();
+        if (primedService == null || misfireService == null || detonationService == null) {
             return;
         }
         Optional<DynamiteDefinition> definition = primedService.resolvePrimed(primed);
@@ -63,6 +59,10 @@ public final class PrimedDynamiteListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplode(EntityExplodeEvent event) {
         if (!(event.getEntity() instanceof TNTPrimed primed)) {
+            return;
+        }
+        PrimedDynamiteService primedService = plugin.getPrimedDynamiteService();
+        if (primedService == null) {
             return;
         }
         if (primedService.resolvePrimed(primed).isPresent()) {

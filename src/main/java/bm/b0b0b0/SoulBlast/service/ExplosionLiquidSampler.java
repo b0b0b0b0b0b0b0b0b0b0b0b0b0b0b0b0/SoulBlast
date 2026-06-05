@@ -14,7 +14,27 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import java.util.List;
+
 public final class ExplosionLiquidSampler {
+
+    public int clearInnerLiquidsImmediately(
+            Location center,
+            DynamiteDefinition dynamite,
+            GeneralSettings general,
+            int innerRingRadius
+    ) {
+        ExplosionEffectsSettings effects = dynamite.explosion.effects;
+        if (!effects.removeWater && !effects.removeLava) {
+            return 0;
+        }
+        World world = center.getWorld();
+        if (world == null || innerRingRadius <= 0) {
+            return 0;
+        }
+        float radius = effects.liquidRadius > 0 ? effects.liquidRadius : dynamite.explosion.radius;
+        return clearHorizontalRings(world, center, radius, effects, general.sampleOnlyLoadedChunks, 0, innerRingRadius);
+    }
 
     public int clearLiquidsImmediately(
             Location center,
@@ -52,6 +72,54 @@ public final class ExplosionLiquidSampler {
         collectIntoJob(job, world, center, radius, effects, general.sampleOnlyLoadedChunks, seen, maxExtra);
     }
 
+    private int clearHorizontalRings(
+            World world,
+            Location center,
+            float radius,
+            ExplosionEffectsSettings effects,
+            boolean onlyLoaded,
+            int fromRing,
+            int toRing
+    ) {
+        int cx = center.getBlockX();
+        int cy = center.getBlockY();
+        int cz = center.getBlockZ();
+        double sphereSq = radius * radius;
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;
+        int verticalReach = (int) Math.ceil(radius);
+        int cleared = 0;
+        for (int ring = fromRing; ring <= toRing; ring++) {
+            double innerSq = ring == 0 ? -1.0 : (double) (ring - 1) * (ring - 1);
+            double outerSq = Math.min((double) ring * ring, sphereSq);
+            for (int dx = -ring; dx <= ring; dx++) {
+                for (int dz = -ring; dz <= ring; dz++) {
+                    double horizSq = (double) dx * dx + dz * dz;
+                    if (horizSq <= innerSq || horizSq > outerSq) {
+                        continue;
+                    }
+                    int x = cx + dx;
+                    int z = cz + dz;
+                    if (onlyLoaded && !world.isChunkLoaded(x >> 4, z >> 4)) {
+                        continue;
+                    }
+                    for (int y = Math.max(minY, cy - verticalReach); y <= Math.min(maxY, cy + verticalReach); y++) {
+                        double distSq = (double) dx * dx + (y - cy) * (y - cy) + dz * dz;
+                        if (distSq > sphereSq) {
+                            continue;
+                        }
+                        Block block = world.getBlockAt(x, y, z);
+                        if (shouldClear(block.getType(), effects)) {
+                            block.setType(Material.AIR, false);
+                            cleared++;
+                        }
+                    }
+                }
+            }
+        }
+        return cleared;
+    }
+
     private int clearSphere(
             World world,
             Location center,
@@ -66,27 +134,32 @@ public final class ExplosionLiquidSampler {
         int cz = center.getBlockZ();
         double radiusSq = radius * radius;
         int cleared = 0;
-        outer:
-        for (int dx = -intRadius; dx <= intRadius; dx++) {
-            for (int dy = -intRadius; dy <= intRadius; dy++) {
-                for (int dz = -intRadius; dz <= intRadius; dz++) {
-                    if (cleared >= maxBlocks) {
-                        break outer;
-                    }
-                    if (dx * dx + dy * dy + dz * dz > radiusSq) {
-                        continue;
-                    }
-                    int x = cx + dx;
-                    int y = cy + dy;
-                    int z = cz + dz;
-                    if (onlyLoaded && !world.isChunkLoaded(x >> 4, z >> 4)) {
-                        continue;
-                    }
-                    Block block = world.getBlockAt(x, y, z);
-                    if (shouldClear(block.getType(), effects)) {
-                        block.setType(Material.AIR, false);
-                        cleared++;
-                    }
+        for (int shell = 0; shell <= intRadius; shell++) {
+            List<ExplosionSphereShells.ShellCell> cells = ExplosionSphereShells.collectShell(
+                    world,
+                    cx,
+                    cy,
+                    cz,
+                    shell,
+                    radiusSq,
+                    onlyLoaded,
+                    y -> true
+            );
+            int shellLiquids = 0;
+            for (ExplosionSphereShells.ShellCell cell : cells) {
+                Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+                if (shouldClear(block.getType(), effects)) {
+                    shellLiquids++;
+                }
+            }
+            if (shellLiquids > 0 && cleared + shellLiquids > maxBlocks) {
+                return cleared;
+            }
+            for (ExplosionSphereShells.ShellCell cell : cells) {
+                Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+                if (shouldClear(block.getType(), effects)) {
+                    block.setType(Material.AIR, false);
+                    cleared++;
                 }
             }
         }
@@ -108,33 +181,47 @@ public final class ExplosionLiquidSampler {
         int cy = center.getBlockY();
         int cz = center.getBlockZ();
         double radiusSq = radius * radius;
-        outer:
-        for (int dx = -intRadius; dx <= intRadius; dx++) {
-            for (int dy = -intRadius; dy <= intRadius; dy++) {
-                for (int dz = -intRadius; dz <= intRadius; dz++) {
-                    if (seen.size() >= maxBlocks) {
-                        break outer;
-                    }
-                    if (dx * dx + dy * dy + dz * dz > radiusSq) {
-                        continue;
-                    }
-                    int x = cx + dx;
-                    int y = cy + dy;
-                    int z = cz + dz;
-                    if (onlyLoaded && !world.isChunkLoaded(x >> 4, z >> 4)) {
-                        continue;
-                    }
-                    long key = BlockCoordPacker.pack(x, y, z);
-                    if (!seen.add(key)) {
-                        continue;
-                    }
-                    Block block = world.getBlockAt(x, y, z);
-                    if (shouldClear(block.getType(), effects)) {
-                        job.getPendingBlocks().add(new ExplosionJob.BlockTarget(
-                                x, y, z, ExplosionBlockAction.CLEAR_LIQUID, Material.AIR
-                        ));
-                    }
+        for (int shell = 0; shell <= intRadius; shell++) {
+            List<ExplosionSphereShells.ShellCell> cells = ExplosionSphereShells.collectShell(
+                    world,
+                    cx,
+                    cy,
+                    cz,
+                    shell,
+                    radiusSq,
+                    onlyLoaded,
+                    y -> true
+            );
+            int shellAdds = 0;
+            for (ExplosionSphereShells.ShellCell cell : cells) {
+                long key = BlockCoordPacker.pack(cell.x(), cell.y(), cell.z());
+                if (seen.contains(key)) {
+                    continue;
                 }
+                Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+                if (shouldClear(block.getType(), effects)) {
+                    shellAdds++;
+                }
+            }
+            if (shellAdds > 0 && seen.size() + shellAdds > maxBlocks) {
+                return;
+            }
+            for (ExplosionSphereShells.ShellCell cell : cells) {
+                if (seen.size() >= maxBlocks) {
+                    return;
+                }
+                long key = BlockCoordPacker.pack(cell.x(), cell.y(), cell.z());
+                if (seen.contains(key)) {
+                    continue;
+                }
+                Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
+                if (!shouldClear(block.getType(), effects)) {
+                    continue;
+                }
+                seen.add(key);
+                job.getPendingBlocks().addLast(new ExplosionJob.BlockTarget(
+                        cell.x(), cell.y(), cell.z(), ExplosionBlockAction.CLEAR_LIQUID, Material.AIR
+                ));
             }
         }
     }
@@ -145,7 +232,8 @@ public final class ExplosionLiquidSampler {
         }
         int estimated = (int) Math.ceil((4.0 / 3.0) * Math.PI * radius * radius * radius);
         int floor = Math.max(1500, (int) (radius * radius * 14));
-        return Math.min(18000, Math.max(floor, estimated));
+        int ceiling = Math.min(250_000, Math.max(24_000, (int) (radius * radius * 22)));
+        return Math.min(ceiling, Math.max(floor, estimated));
     }
 
     public static boolean drainsLiquids(DynamiteDefinition dynamite) {

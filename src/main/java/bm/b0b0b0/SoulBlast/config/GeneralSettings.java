@@ -29,6 +29,21 @@ public class GeneralSettings {
     @Comment(@CommentValue("При GRIEF — заливка кратера (0 = 45000)"))
     public int griefMaxCraterFillBlocksPerExplosion = 45_000;
 
+    @Comment(@CommentValue("last_pyre: REPLACE маски в тик детонации (0 = как grief-max-blocks-per-explosion-tick)"))
+    public int griefLastPyreMaskBurstOnDetonate = 0;
+
+    @Comment(@CommentValue("last_pyre: множитель блоков/тик при разгрузке очереди (1.0 = без буста)"))
+    public float griefLastPyreQueueTickMultiplier = 1.0f;
+
+    @Comment(@CommentValue("last_pyre: молний за тик во время адской маски (0 = выкл)"))
+    public int griefLastPyreMaskLightningPerTick = 4;
+
+    @Comment(@CommentValue("last_pyre: радиус молний при маске (0 = радиус взрыва)"))
+    public float griefLastPyreMaskLightningRadius = 0f;
+
+    @Comment(@CommentValue("last_pyre: мгновенное осушение ядра при детонации (блоков по горизонтали)"))
+    public int griefLastPyreInnerDrainRadius = 18;
+
     @Comment(@CommentValue("Сколько блоков одного взрыва ломать за тик сервера (1500–2500 — баланс TPS)"))
     public int maxBlocksPerExplosionTick = 1800;
 
@@ -43,6 +58,9 @@ public class GeneralSettings {
 
     @Comment(@CommentValue("Не трогать непрогруженные чанки (false = полный снос, но нагрузка)"))
     public boolean sampleOnlyLoadedChunks = false;
+
+    @Comment(@CommentValue("Лог взрывов last_pyre и маски в консоль + игроку"))
+    public boolean explosionDebug = false;
 
     @Comment(@CommentValue("Максимум одновременных отложенных взрывов в очереди"))
     public int maxQueuedExplosions = 16;

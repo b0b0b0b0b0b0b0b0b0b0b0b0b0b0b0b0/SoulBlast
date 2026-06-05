@@ -4,8 +4,8 @@ import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.FuseRecallSettings;
 import bm.b0b0b0.SoulBlast.message.MessageService;
 import bm.b0b0b0.SoulBlast.model.PrimedDynamiteSession;
-import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
 import bm.b0b0b0.SoulBlast.util.PluginKeys;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.ItemStack;
@@ -29,23 +29,23 @@ public final class PrimedDynamiteRecallService {
 
     private final FuseRecallSettings settings;
     private final PrimedDynamiteService primedService;
+    private final PrimedDynamiteMisfireService misfireService;
     private final DynamiteItemFactory itemFactory;
-    private final DynamiteRegistry registry;
     private final MessageService messages;
     private final PluginKeys keys;
 
     public PrimedDynamiteRecallService(
             FuseRecallSettings settings,
             PrimedDynamiteService primedService,
+            PrimedDynamiteMisfireService misfireService,
             DynamiteItemFactory itemFactory,
-            DynamiteRegistry registry,
             MessageService messages,
             PluginKeys keys
     ) {
         this.settings = settings;
         this.primedService = primedService;
+        this.misfireService = misfireService;
         this.itemFactory = itemFactory;
-        this.registry = registry;
         this.messages = messages;
         this.keys = keys;
     }
@@ -61,15 +61,16 @@ public final class PrimedDynamiteRecallService {
         if (definition.isEmpty()) {
             return RecallResult.NOT_PRIMED;
         }
-        UUID placerId = resolvePlacerId(primed);
+        Optional<PrimedDynamiteSession> session = primedService.findSessionForRecall(primed);
+        UUID placerId = resolvePlacerId(primed, session);
         if (placerId == null) {
             return RecallResult.NO_OWNER;
         }
         if (!placerId.equals(player.getUniqueId())) {
             return RecallResult.NOT_OWNER;
         }
-        primed.remove();
-        primedService.removeSession(primed.getUniqueId());
+        session.ifPresent(misfireService::disposeDud);
+        removeRecallEntities(primed, session);
         returnItem(player, primed.getLocation(), definition.get());
         return RecallResult.SUCCESS;
     }
@@ -98,8 +99,25 @@ public final class PrimedDynamiteRecallService {
         }
     }
 
-    private UUID resolvePlacerId(TNTPrimed primed) {
-        Optional<PrimedDynamiteSession> session = primedService.session(primed.getUniqueId());
+    private void removeRecallEntities(TNTPrimed clicked, Optional<PrimedDynamiteSession> session) {
+        session.ifPresent(primedService::disposeSession);
+        UUID clickedId = clicked.getUniqueId();
+        if (!clicked.isDead()) {
+            clicked.remove();
+        }
+        Entity trackedEntity = session
+                .map(PrimedDynamiteSession::getEntityId)
+                .map(id -> clicked.getServer().getEntity(id))
+                .orElse(null);
+        if (trackedEntity instanceof TNTPrimed trackedPrimed
+                && !trackedPrimed.getUniqueId().equals(clickedId)
+                && !trackedPrimed.isDead()) {
+            trackedPrimed.remove();
+        }
+        primedService.removeSession(clickedId);
+    }
+
+    private UUID resolvePlacerId(TNTPrimed primed, Optional<PrimedDynamiteSession> session) {
         if (session.isPresent() && session.get().getPlacerId() != null) {
             return session.get().getPlacerId();
         }

@@ -34,6 +34,12 @@ public final class ExplosionQueueService {
     private ExplosionLimits limits = ExplosionLimits.from(general);
     private final ExplosionChunkContext chunkContext = new ExplosionChunkContext();
     private final ExplosionFireSupport fireSupport = new ExplosionFireSupport();
+    private final ExplosionChunkScope chunkScope = new ExplosionChunkScope();
+    private final TsarExplosionGate tsarGate;
+    private final ExplosionDebugTrace explosionDebug;
+    private final TsarGradualDrainService tsarGradualDrain = new TsarGradualDrainService();
+    private final HellscapeLightningService hellscapeLightning = new HellscapeLightningService();
+    private final TsarGradualMaskService tsarGradualMask;
 
     public ExplosionQueueService(
             SoulBlast plugin,
@@ -45,7 +51,9 @@ public final class ExplosionQueueService {
             BlockExplosionApplier blockApplier,
             EntityExplosionDamageService entityDamageService,
             ExplosionEntityEffectsService entityEffectsService,
-            PostExplosionActionRunner postActionRunner
+            PostExplosionActionRunner postActionRunner,
+            TsarExplosionGate tsarGate,
+            ExplosionDebugTrace explosionDebug
     ) {
         this.plugin = plugin;
         this.raySampler = raySampler;
@@ -57,11 +65,16 @@ public final class ExplosionQueueService {
         this.entityDamageService = entityDamageService;
         this.entityEffectsService = entityEffectsService;
         this.postActionRunner = postActionRunner;
+        this.tsarGate = tsarGate;
+        this.explosionDebug = explosionDebug;
+        this.tsarGradualMask = new TsarGradualMaskService(new HellscapeMaskPlanner(), blockApplier);
+        tsarGate.bindLauncher(this::launchTsar);
     }
 
     public void reload(PluginConfig config) {
         general = config.general;
         limits = ExplosionLimits.from(general);
+        explosionDebug.setEnabled(general.explosionDebug);
     }
 
     public void enqueue(Location center, DynamiteDefinition dynamite, Entity source) {
@@ -70,17 +83,38 @@ public final class ExplosionQueueService {
 
     public void enqueue(Location center, DynamiteDefinition dynamite, Entity source, boolean fuseTriggered) {
         if (samplingQueue.size() + queue.size() >= general.maxQueuedExplosions) {
+            explosionDebug.warn("queue full, dropped id=" + dynamite.id + " at " + format(center));
             return;
         }
+        chunkScope.pin(center, dynamite);
         if (ExplosionLiquidSampler.drainsLiquids(dynamite)) {
-            liquidSampler.clearLiquidsImmediately(center, dynamite, limits, general);
-            if (DrainVortexEffectService.usesDrainVortex(dynamite)) {
-                DrainVortexEffectService.start(plugin, center, dynamite);
-            } else {
+            if (TsarBombRules.isTsar(dynamite)) {
+                int innerDrain = Math.max(0, general.griefLastPyreInnerDrainRadius);
+                liquidSampler.clearInnerLiquidsImmediately(center, dynamite, general, innerDrain);
                 ExplosionPresentationEffects.playChargeBurst(center, dynamite);
+            } else {
+                liquidSampler.clearLiquidsImmediately(center, dynamite, limits, general);
+                if (DrainVortexEffectService.usesDrainVortex(dynamite)) {
+                    DrainVortexEffectService.start(plugin, center, dynamite);
+                } else {
+                    ExplosionPresentationEffects.playChargeBurst(center, dynamite);
+                }
             }
         }
         ExplosionJob job = new ExplosionJob(center, dynamite, source);
+        if (TsarBombRules.isTsar(dynamite)) {
+            if (!dynamite.explosion.breakBlocks) {
+                TsarExplosionGate.AdmitOutcome outcome = tsarGate.admit(job);
+                explosionDebug.enqueue(center, dynamite, outcome);
+                if (outcome == TsarExplosionGate.AdmitOutcome.STARTED) {
+                    complete(job);
+                }
+                return;
+            }
+            TsarExplosionGate.AdmitOutcome outcome = tsarGate.admit(job);
+            explosionDebug.enqueue(center, dynamite, outcome);
+            return;
+        }
         if (!dynamite.explosion.breakBlocks) {
             complete(job);
             return;
@@ -93,6 +127,67 @@ public final class ExplosionQueueService {
             return;
         }
         samplingQueue.offer(job);
+    }
+
+    private void launchTsar(ExplosionJob job) {
+        if (!job.getDynamite().explosion.breakBlocks) {
+            complete(job);
+            return;
+        }
+        prepareBreakPhase(job);
+        job.markTsarOrchestrated();
+        job.setTsarDrainRing(Math.max(0, general.griefLastPyreInnerDrainRadius) + 1);
+        job.getDiagnostics().setPlannedBreak(job.getPendingBlocks().size());
+        if (queue.size() >= general.maxQueuedExplosions) {
+            playTsarPresentation(job);
+            finalizeTsarPhases(job);
+            return;
+        }
+        pushTsarFront(job);
+        playTsarPresentation(job);
+    }
+
+    private void pushTsarFront(ExplosionJob job) {
+        queue.remove(job);
+        if (queue instanceof ArrayDeque<ExplosionJob> deque) {
+            deque.addFirst(job);
+        } else {
+            queue.offer(job);
+        }
+    }
+
+    private void finalizeTsarPhases(ExplosionJob job) {
+        if (!job.isTsarOrchestrated()) {
+            job.markTsarOrchestrated();
+        }
+        makeQueueRoomForTsar(job);
+        entityEffectsService.apply(job);
+        if (!job.getPendingBlocks().isEmpty()) {
+            pushTsarFront(job);
+            return;
+        }
+        complete(job);
+    }
+
+    private void makeQueueRoomForTsar(ExplosionJob job) {
+        while (queue.size() >= general.maxQueuedExplosions && !queue.isEmpty()) {
+            ExplosionJob dropped = queue.poll();
+            explosionDebug.warn("queue full, dropped queued explosion to keep last_pyre");
+            if (dropped != null && dropped.getPendingBlocks().isEmpty()) {
+                complete(dropped);
+            }
+        }
+    }
+
+    private int tsarTickBudget(int baseBudget) {
+        float multiplier = Math.max(1.0f, general.griefLastPyreQueueTickMultiplier);
+        if (multiplier <= 1.001f) {
+            return baseBudget;
+        }
+        return Math.min(
+                limits.maxBlocksPerExplosionTick() * 2,
+                Math.max(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier))
+        );
     }
 
     private void beginBlockSampling(ExplosionJob job) {
@@ -151,10 +246,13 @@ public final class ExplosionQueueService {
     }
 
     private void prepareCraterPhase(ExplosionJob job) {
-        ExplosionBlockOrder.sortByChunk(job);
-        ExplosionEdgePhysicsMarker.markShell(
+        if (TsarBombRules.isTsar(job.getDynamite()) && job.isHellMaskQueued()) {
+            ExplosionBlockOrder.prioritizeHellscape(job);
+        } else {
+            ExplosionBlockOrder.sortByChunk(job);
+        }
+        ExplosionEdgePhysicsMarker.markPlacementShell(
                 job,
-                ExplosionBlockAction.PLACE,
                 job.getDynamite().explosion.algorithm.edgePhysicsOnly
         );
     }
@@ -166,7 +264,7 @@ public final class ExplosionQueueService {
         if (queue.size() >= general.maxQueuedExplosions) {
             return;
         }
-        if (dynamite.explosion.spreadAcrossTicks) {
+        if (TsarBombRules.isTsar(dynamite) || dynamite.explosion.spreadAcrossTicks) {
             queue.offer(job);
             return;
         }
@@ -174,22 +272,17 @@ public final class ExplosionQueueService {
     }
 
     private void runJobSync(ExplosionJob job) {
-        try {
-            if (hasLiquidPhase(job)) {
-                liquidSampler.sampleIntoJob(job, limits, general);
-                prepareLiquidPhase(job);
-                drainPending(job);
-            }
-            prepareBreakPhase(job);
+        if (hasLiquidPhase(job)) {
+            liquidSampler.sampleIntoJob(job, limits, general);
+            prepareLiquidPhase(job);
             drainPending(job);
-            entityEffectsService.apply(job);
-            if (hasCraterPhase(job)) {
-                craterFillPlanner.planIntoJob(job, limits, general);
-                prepareCraterPhase(job);
-                drainPending(job);
-            }
-        } finally {
-            applyPsDurability(job);
+        }
+        prepareBreakPhase(job);
+        drainPending(job);
+        entityEffectsService.apply(job);
+        if (hasCraterPhase(job)) {
+            planAndApplyMask(job);
+            drainPending(job);
         }
         complete(job);
     }
@@ -204,8 +297,22 @@ public final class ExplosionQueueService {
 
     public void processTick() {
         int budget = limits.maxBlocksPerExplosionTick();
+        ExplosionJob tsar = findOrchestratedTsar();
+        if (tsar != null) {
+            processTsarOrchestration(tsar, tsarTickBudget(budget));
+            return;
+        }
         budget = processSampling(budget);
         processBreaking(budget);
+    }
+
+    private ExplosionJob findOrchestratedTsar() {
+        for (ExplosionJob job : queue) {
+            if (TsarBombRules.isTsar(job.getDynamite()) && job.isTsarOrchestrated()) {
+                return job;
+            }
+        }
+        return null;
     }
 
     private int processSampling(int budget) {
@@ -233,10 +340,13 @@ public final class ExplosionQueueService {
     }
 
     private void processBreaking(int budget) {
-        chunkContext.reset();
         ExplosionJob job = queue.peek();
         if (job == null) {
             return;
+        }
+        chunkContext.reset();
+        if (TsarBombRules.isTsar(job.getDynamite())) {
+            budget = tsarTickBudget(budget);
         }
         while (budget > 0 && !job.getPendingBlocks().isEmpty()) {
             ExplosionJob.BlockTarget target = job.getPendingBlocks().pollFirst();
@@ -250,11 +360,95 @@ public final class ExplosionQueueService {
         }
     }
 
+    private void processTsarOrchestration(ExplosionJob job, int budget) {
+        int breakBudget = Math.max(1, budget * 2 / 5);
+        int drainBudget = Math.max(1, budget * 2 / 5);
+        int maskBudget = Math.max(0, budget - breakBudget - drainBudget);
+        if (!job.isTsarBreakFinished()) {
+            processTsarBreakChunk(job, breakBudget);
+        }
+        if (!job.isTsarDrainFinished()) {
+            if (tsarGradualDrain.tick(job, drainBudget, general)) {
+                job.markTsarDrainFinished();
+            }
+        }
+        if (shouldStartTsarMask(job)) {
+            startTsarMask(job);
+        }
+        if (job.isHellMaskQueued()) {
+            hellscapeLightning.tickDuringMask(job, general);
+            if (maskBudget > 0) {
+                tsarGradualMask.tick(job, maskBudget, limits, general);
+            }
+        }
+        if (job.isTsarBreakFinished()
+                && job.isTsarDrainFinished()
+                && tsarGradualMask.isComplete(job, limits)) {
+            finishTsarJob(job);
+        }
+    }
+
+    private void processTsarBreakChunk(ExplosionJob job, int budget) {
+        chunkContext.reset();
+        while (budget > 0 && !job.getPendingBlocks().isEmpty()) {
+            ExplosionJob.BlockTarget target = job.getPendingBlocks().pollFirst();
+            if (target != null) {
+                blockApplier.applyBlock(job, target, chunkContext);
+            }
+            budget--;
+        }
+        if (job.getPendingBlocks().isEmpty()) {
+            entityEffectsService.apply(job);
+            job.markTsarBreakFinished();
+            explosionDebug.phase(job, ExplosionJobPhase.BREAK, ExplosionJobPhase.LIQUID, 0);
+        }
+    }
+
+    private boolean shouldStartTsarMask(ExplosionJob job) {
+        if (job.isHellMaskQueued()) {
+            return true;
+        }
+        int reach = (int) Math.ceil(resolveTsarLiquidRadius(job));
+        int threshold = Math.max(6, reach / 5);
+        return job.getTsarDrainRing() >= threshold || job.isTsarDrainFinished();
+    }
+
+    private void startTsarMask(ExplosionJob job) {
+        if (job.isHellMaskQueued()) {
+            return;
+        }
+        job.setPhase(ExplosionJobPhase.CRATER);
+        job.setTsarMaskRing(Math.max(0, general.griefLastPyreInnerDrainRadius));
+        job.getTsarMaskKeys().clear();
+        job.markHellMaskQueued();
+        tsarGradualMask.initMaskMeta(job);
+        explosionDebug.phase(job, ExplosionJobPhase.LIQUID, ExplosionJobPhase.CRATER, 0);
+        explosionDebug.maskPlanned(
+                job,
+                0,
+                job.getDiagnostics().maskReach(),
+                TsarBombRules.craterCap(limits, job.getDynamite()),
+                job.getDiagnostics().maskColumns()
+        );
+    }
+
+    private void finishTsarJob(ExplosionJob job) {
+        queue.remove(job);
+        complete(job);
+    }
+
+    private float resolveTsarLiquidRadius(ExplosionJob job) {
+        var effects = job.getDynamite().explosion.effects;
+        return effects.liquidRadius > 0 ? effects.liquidRadius : job.getDynamite().explosion.radius;
+    }
+
     private void advancePhase(ExplosionJob job) {
-        switch (job.getPhase()) {
+        ExplosionJobPhase phase = job.getPhase();
+        switch (phase) {
             case BREAK -> {
                 entityEffectsService.apply(job);
                 job.setPhase(ExplosionJobPhase.LIQUID);
+                explosionDebug.phase(job, phase, ExplosionJobPhase.LIQUID, job.getPendingBlocks().size());
                 if (hasLiquidPhase(job)) {
                     liquidSampler.sampleIntoJob(job, limits, general);
                     prepareLiquidPhase(job);
@@ -266,9 +460,11 @@ public final class ExplosionQueueService {
             }
             case LIQUID -> {
                 job.setPhase(ExplosionJobPhase.CRATER);
-                if (hasCraterPhase(job)) {
-                    craterFillPlanner.planIntoJob(job, limits, general);
-                    prepareCraterPhase(job);
+                explosionDebug.phase(job, phase, ExplosionJobPhase.CRATER, job.getPendingBlocks().size());
+                if (hasCraterPhase(job) && !job.isHellMaskQueued()) {
+                    planAndApplyMask(job);
+                    job.markHellMaskQueued();
+                    ExplosionBlockOrder.prioritizeHellscape(job);
                     if (!job.getPendingBlocks().isEmpty()) {
                         return;
                     }
@@ -283,12 +479,27 @@ public final class ExplosionQueueService {
         }
     }
 
+    private void planAndApplyMask(ExplosionJob job) {
+        craterFillPlanner.planIntoJob(job, limits, general);
+        prepareCraterPhase(job);
+        explosionDebug.maskPlanned(
+                job,
+                job.getDiagnostics().plannedMask(),
+                job.getDiagnostics().maskReach(),
+                TsarBombRules.craterCap(limits, job.getDynamite()),
+                job.getDiagnostics().maskColumns()
+        );
+    }
+
     private boolean hasLiquidPhase(ExplosionJob job) {
         var effects = job.getDynamite().explosion.effects;
         return effects.removeWater || effects.removeLava;
     }
 
     private boolean hasCraterPhase(ExplosionJob job) {
+        if (TsarBombRules.isTsar(job.getDynamite())) {
+            return true;
+        }
         return job.getDynamite().explosion.effects.craterFill.enabled;
     }
 
@@ -314,6 +525,41 @@ public final class ExplosionQueueService {
         Location center = job.getCenter();
         DynamiteDefinition dynamite = job.getDynamite();
         applyPsDurability(job);
+        if (!job.isPresentationPlayed()) {
+            applyPresentation(job);
+        }
+        if (TsarBombRules.isTsar(dynamite)) {
+            fireSupport.igniteHellscape(center, dynamite);
+        }
+        if (dynamite.explosion.createFire) {
+            fireSupport.removeUnsupportedFire(center, dynamite.explosion.radius);
+        }
+        if (!TsarBombRules.isTsar(dynamite)) {
+            postActionRunner.scheduleActions(plugin, center, dynamite.explosion.postActions);
+        }
+        explosionDebug.complete(job);
+        if (TsarBombRules.isTsar(dynamite)) {
+            tsarGate.onExplosionFinished();
+        }
+    }
+
+    private static String format(Location center) {
+        if (center == null || center.getWorld() == null) {
+            return "null";
+        }
+        return center.getWorld().getName() + '@'
+                + center.getBlockX() + ',' + center.getBlockY() + ',' + center.getBlockZ();
+    }
+
+    private void playTsarPresentation(ExplosionJob job) {
+        applyPresentation(job);
+        postActionRunner.scheduleActions(plugin, job.getCenter(), job.getDynamite().explosion.postActions);
+        job.markPresentationPlayed();
+    }
+
+    private void applyPresentation(ExplosionJob job) {
+        Location center = job.getCenter();
+        DynamiteDefinition dynamite = job.getDynamite();
         if (center.getWorld() != null) {
             entityDamageService.applyDamage(
                     dynamite.explosion,
@@ -328,10 +574,6 @@ public final class ExplosionQueueService {
             );
         }
         playEffects(center, dynamite);
-        if (dynamite.explosion.createFire) {
-            fireSupport.removeUnsupportedFire(center, dynamite.explosion.radius);
-        }
-        postActionRunner.scheduleActions(plugin, center, dynamite.explosion.postActions);
     }
 
     private void playEffects(Location center, DynamiteDefinition dynamite) {
@@ -358,6 +600,7 @@ public final class ExplosionQueueService {
     public void shutdown() {
         samplingQueue.clear();
         queue.clear();
+        tsarGate.shutdown();
     }
 
 }

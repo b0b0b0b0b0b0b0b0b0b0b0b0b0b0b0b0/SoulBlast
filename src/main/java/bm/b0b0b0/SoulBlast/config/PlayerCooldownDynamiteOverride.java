@@ -11,4 +11,7 @@ public class PlayerCooldownDynamiteOverride {
     @Comment(@CommentValue("Использование в сек (-1 = как у tier)"))
     public int useSeconds = -1;
 
+    @Comment(@CommentValue("Игнорировать bypass-permission даже у op"))
+    public boolean noBypass = false;
+
 }

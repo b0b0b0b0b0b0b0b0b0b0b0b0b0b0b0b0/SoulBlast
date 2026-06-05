@@ -30,7 +30,6 @@ public final class DynamitePlaceListener implements Listener {
     private final SoulBlast plugin;
     private final DynamiteRegistry registry;
     private final DynamiteItemFactory itemFactory;
-    private final PrimedDynamiteService primedService;
     private final PlayerProfileService profileService;
     private final PlacedDynamiteTracker placedTracker;
     private final RegionProtectionService regionProtection;
@@ -41,7 +40,6 @@ public final class DynamitePlaceListener implements Listener {
             SoulBlast plugin,
             DynamiteRegistry registry,
             DynamiteItemFactory itemFactory,
-            PrimedDynamiteService primedService,
             PlayerProfileService profileService,
             PlacedDynamiteTracker placedTracker,
             RegionProtectionService regionProtection,
@@ -51,7 +49,6 @@ public final class DynamitePlaceListener implements Listener {
         this.plugin = plugin;
         this.registry = registry;
         this.itemFactory = itemFactory;
-        this.primedService = primedService;
         this.profileService = profileService;
         this.placedTracker = placedTracker;
         this.regionProtection = regionProtection;
@@ -85,6 +82,15 @@ public final class DynamitePlaceListener implements Listener {
         if (!regionCheck.permitted()) {
             event.setCancelled(true);
             regionMessages.sendBlocked(player, regionCheck, dynamite);
+            return;
+        }
+        PrimedDynamiteService primedService = plugin.getPrimedDynamiteService();
+        if (primedService == null) {
+            event.setCancelled(true);
+            return;
+        }
+        if (cooldownMessages.blockLastPyrePlace(player, dynamite, primedService, plugin.getTsarExplosionGate())) {
+            event.setCancelled(true);
             return;
         }
         if (cooldownMessages.blockUse(player, dynamite)) {

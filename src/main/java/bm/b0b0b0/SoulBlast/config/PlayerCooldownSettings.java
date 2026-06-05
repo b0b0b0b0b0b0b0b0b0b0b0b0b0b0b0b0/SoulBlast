@@ -57,8 +57,9 @@ public class PlayerCooldownSettings {
     private static Map<String, PlayerCooldownDynamiteOverride> defaultDynamites() {
         Map<String, PlayerCooldownDynamiteOverride> map = new LinkedHashMap<>();
         PlayerCooldownDynamiteOverride lastPyre = new PlayerCooldownDynamiteOverride();
-        lastPyre.purchaseSeconds = 45;
+        lastPyre.purchaseSeconds = 30;
         lastPyre.useSeconds = 30;
+        lastPyre.noBypass = true;
         map.put("last_pyre", lastPyre);
         return map;
     }

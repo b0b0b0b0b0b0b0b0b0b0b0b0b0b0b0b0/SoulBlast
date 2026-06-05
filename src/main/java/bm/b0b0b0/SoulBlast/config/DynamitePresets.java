@@ -245,6 +245,7 @@ public final class DynamitePresets {
         fill.magmaShellWidth = 5.0f;
         fill.magmaShellLayers = 5;
         fill.shellMaterial = "MAGMA_BLOCK";
+        fill.hellFloorScatter = false;
     }
 
     private static void applyTsarWarheads(DynamiteDefinition d) {

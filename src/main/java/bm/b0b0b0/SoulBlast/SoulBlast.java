@@ -53,7 +53,9 @@ import bm.b0b0b0.SoulBlast.service.TsarWarheadService;
 import bm.b0b0b0.SoulBlast.service.ObsidianInstantShatterService;
 import bm.b0b0b0.SoulBlast.service.ExplosionLiquidSampler;
 import bm.b0b0b0.SoulBlast.service.ExplosionQueueService;
+import bm.b0b0b0.SoulBlast.service.TsarExplosionGate;
 import bm.b0b0b0.SoulBlast.service.ExplosionBlockInclusion;
+import bm.b0b0b0.SoulBlast.service.ExplosionDebugTrace;
 import bm.b0b0b0.SoulBlast.service.ExplosionRaySampler;
 import bm.b0b0b0.SoulBlast.service.ExplosionWaveSampler;
 import bm.b0b0b0.SoulBlast.service.ExplosionVolumeSampler;
@@ -103,6 +105,7 @@ public final class SoulBlast extends JavaPlugin {
     private PlacedDynamiteTracker placedDynamiteTracker;
     private final AtomicBoolean integrationsBootstrapped = new AtomicBoolean(false);
     private ExplosionQueueService explosionQueueService;
+    private TsarExplosionGate tsarExplosionGate;
     private SoulGrimoireMenuService grimoireMenuService;
     private SoulGrimoireCommand grimoireCommand;
     private PlayerProfileRepository playerProfileRepository;
@@ -197,6 +200,9 @@ public final class SoulBlast extends JavaPlugin {
         }
         if (craftingRegistrar != null) {
             craftingRegistrar.unregisterAll();
+        }
+        if (primedDynamiteService != null) {
+            primedDynamiteService.shutdown();
         }
         if (explosionQueueService != null) {
             explosionQueueService.shutdown();
@@ -299,6 +305,16 @@ public final class SoulBlast extends JavaPlugin {
                 obsidianShatter,
                 psExplosionBridge
         );
+        if (tsarExplosionGate == null) {
+            tsarExplosionGate = new TsarExplosionGate(this);
+        }
+        if (primedDynamiteService != null) {
+            primedDynamiteService.shutdown();
+        }
+        if (explosionQueueService != null) {
+            explosionQueueService.shutdown();
+        }
+        ExplosionDebugTrace explosionDebugTrace = new ExplosionDebugTrace(this);
         explosionQueueService = new ExplosionQueueService(
                 this,
                 raySampler,
@@ -309,7 +325,9 @@ public final class SoulBlast extends JavaPlugin {
                 blockApplier,
                 entityExplosionDamageService,
                 explosionEntityEffectsService,
-                new PostExplosionActionRunner()
+                new PostExplosionActionRunner(),
+                tsarExplosionGate,
+                explosionDebugTrace
         );
         explosionQueueService.reload(pluginConfig);
         dynamiteVisualService = new DynamiteVisualService(this);
@@ -346,8 +364,8 @@ public final class SoulBlast extends JavaPlugin {
         primedDynamiteRecallService = new PrimedDynamiteRecallService(
                 pluginConfig.fuseRecall,
                 primedDynamiteService,
+                primedDynamiteMisfireService,
                 itemFactory,
-                dynamiteRegistry,
                 messageService,
                 pluginKeys
         );
@@ -375,6 +393,7 @@ public final class SoulBlast extends JavaPlugin {
                     vaultEconomyBridge
             );
         }
+        startTasks();
     }
 
     private void initPlayerData() {
@@ -393,6 +412,9 @@ public final class SoulBlast extends JavaPlugin {
     private void initPlayerCooldown() {
         if (dynamiteCooldownService == null) {
             dynamiteCooldownService = new DynamiteCooldownService();
+        }
+        if (tsarExplosionGate != null) {
+            dynamiteCooldownService.bindTsarGate(tsarExplosionGate);
         }
         dynamiteCooldownService.reload(pluginConfig.playerCooldown);
         if (dynamiteCooldownMessenger == null) {
@@ -503,7 +525,6 @@ public final class SoulBlast extends JavaPlugin {
                         this,
                         dynamiteRegistry,
                         itemFactory,
-                        primedDynamiteService,
                         playerProfileService,
                         placedDynamiteTracker,
                         regionProtectionService,
@@ -519,7 +540,6 @@ public final class SoulBlast extends JavaPlugin {
                         dynamiteRegistry,
                         itemFactory,
                         placedDynamiteTracker,
-                        primedDynamiteService,
                         messageService,
                         regionProtectionService,
                         regionProtectionMessenger,
@@ -528,19 +548,8 @@ public final class SoulBlast extends JavaPlugin {
                 this
         );
         getServer().getPluginManager().registerEvents(new PrimedDynamiteRecallListener(this), this);
-        getServer().getPluginManager().registerEvents(
-                new PrimedDynamiteMisfireListener(primedDynamiteService, primedDynamiteMisfireService, messageService),
-                this
-        );
-        getServer().getPluginManager().registerEvents(
-                new PrimedDynamiteListener(
-                        this,
-                        primedDynamiteService,
-                        primedDynamiteMisfireService,
-                        primedDynamiteDetonationService
-                ),
-                this
-        );
+        getServer().getPluginManager().registerEvents(new PrimedDynamiteMisfireListener(this), this);
+        getServer().getPluginManager().registerEvents(new PrimedDynamiteListener(this), this);
         getServer().getPluginManager().registerEvents(
                 new PlayerConnectionListener(playerProfileService, dynamiteCooldownService),
                 this
@@ -548,14 +557,41 @@ public final class SoulBlast extends JavaPlugin {
     }
 
     private void startTasks() {
-        cancelTasks();
-        int interval = Math.max(1, pluginConfig.general.explosionQueueIntervalTicks);
-        explosionTask = getServer().getScheduler().runTaskTimer(this, explosionQueueService::processTick, interval, interval);
-        hologramTask = getServer().getScheduler().runTaskTimer(this, primedDynamiteService::tickGlowAndHologram, 1L, 1L);
+        if (explosionTask == null) {
+            int interval = Math.max(1, pluginConfig.general.explosionQueueIntervalTicks);
+            explosionTask = getServer().getScheduler().runTaskTimer(
+                    this,
+                    () -> {
+                        ExplosionQueueService service = explosionQueueService;
+                        if (service != null) {
+                            service.processTick();
+                        }
+                    },
+                    interval,
+                    interval
+            );
+        }
+        if (hologramTask == null) {
+            hologramTask = getServer().getScheduler().runTaskTimer(
+                    this,
+                    () -> {
+                        PrimedDynamiteService service = primedDynamiteService;
+                        if (service != null) {
+                            service.tickGlowAndHologram();
+                        }
+                    },
+                    1L,
+                    1L
+            );
+        }
     }
 
     public MenuFileConfig getMenuConfig() {
         return menuConfig;
+    }
+
+    public TsarExplosionGate getTsarExplosionGate() {
+        return tsarExplosionGate;
     }
 
     public PrimedDynamiteService getPrimedDynamiteService() {
@@ -564,6 +600,14 @@ public final class SoulBlast extends JavaPlugin {
 
     public PrimedDynamiteRecallService getPrimedDynamiteRecallService() {
         return primedDynamiteRecallService;
+    }
+
+    public PrimedDynamiteMisfireService getPrimedDynamiteMisfireService() {
+        return primedDynamiteMisfireService;
+    }
+
+    public PrimedDynamiteDetonationService getPrimedDynamiteDetonationService() {
+        return primedDynamiteDetonationService;
     }
 
     public DecayModule getDecayModule() {

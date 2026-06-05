@@ -33,6 +33,27 @@ public final class DynamiteCooldownMessenger {
         return true;
     }
 
+    public boolean blockLastPyrePlace(
+            Player player,
+            DynamiteDefinition dynamite,
+            PrimedDynamiteService primedService,
+            TsarExplosionGate gate
+    ) {
+        if (!TsarBombRules.isTsar(dynamite)) {
+            return false;
+        }
+        if (primedService != null && primedService.hasLiveLastPyreFrom(player)) {
+            messageService.send(player, "last-pyre-fuse-active", Map.of(
+                    "display", displayName(dynamite)
+            ));
+            return true;
+        }
+        if (gate != null && gate.isServerBlocked()) {
+            return blockUse(player, dynamite);
+        }
+        return false;
+    }
+
     public boolean blockUse(Player player, DynamiteDefinition dynamite) {
         DynamiteCooldownService.CooldownStatus status = cooldownService.status(
                 player,

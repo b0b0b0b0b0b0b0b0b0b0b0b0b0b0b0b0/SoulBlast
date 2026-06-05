@@ -2,6 +2,7 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
+import bm.b0b0b0.SoulBlast.config.GeneralSettings;
 
 public final class TsarBombRules {
 
@@ -18,12 +19,20 @@ public final class TsarBombRules {
         return isTsar(dynamite);
     }
 
-    public static int blockCap(ExplosionLimits limits, DynamiteDefinition dynamite) {
+    public static int blockCap(ExplosionLimits limits, DynamiteDefinition dynamite, GeneralSettings general) {
         int base = limits.maxBlocksPerExplosion();
         if (!isTsar(dynamite)) {
             return base;
         }
-        return Math.max(base, (int) (base * dynamite.explosion.blockBudgetMultiplier));
+        int scaled = Math.max(base, (int) (base * dynamite.explosion.blockBudgetMultiplier));
+        if (!"GRIEF".equalsIgnoreCase(general.destructionMode)) {
+            return scaled;
+        }
+        if (general.griefUnlimitedBlocks) {
+            float radius = dynamite.explosion.radius * 1.05f;
+            return Math.max(scaled, (int) Math.ceil((4.0 / 3.0) * Math.PI * radius * radius * radius));
+        }
+        return scaled;
     }
 
     public static int craterCap(ExplosionLimits limits, DynamiteDefinition dynamite) {

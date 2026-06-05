@@ -7,9 +7,11 @@ import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
 import bm.b0b0b0.SoulBlast.service.region.RegionProtectionMessenger;
 import bm.b0b0b0.SoulBlast.service.region.RegionProtectionService;
 import org.bukkit.Location;
+import bm.b0b0b0.SoulBlast.util.PluginKeys;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.persistence.PersistentDataType;
 
 public final class PrimedDynamiteDetonationService {
 
@@ -61,7 +63,8 @@ public final class PrimedDynamiteDetonationService {
             }
             return DetonationResult.REGION_BLOCKED;
         }
-        if (player != null && cooldownMessages.blockUse(player, definition)) {
+        boolean tsarWarhead = isTsarWarhead(primed);
+        if (player != null && !tsarWarhead && cooldownMessages.blockUse(player, definition)) {
             return DetonationResult.COOLDOWN_BLOCKED;
         }
         ExplosionQueueService queue = plugin.getExplosionQueueService();
@@ -80,12 +83,20 @@ public final class PrimedDynamiteDetonationService {
             plugin.getLogger().warning("Detonation effects skipped: " + failure.getMessage());
         }
         queue.enqueue(blastCenter, definition, source, true);
-        if (player != null) {
+        if (player != null && !tsarWarhead) {
             cooldownService.record(player, definition, DynamiteCooldownService.CooldownKind.USE);
         }
         primed.remove();
         primedService.removeSession(primed.getUniqueId());
         return DetonationResult.QUEUED;
+    }
+
+    private boolean isTsarWarhead(TNTPrimed primed) {
+        PluginKeys keys = plugin.pluginKeys();
+        if (keys == null) {
+            return false;
+        }
+        return primed.getPersistentDataContainer().has(keys.tsarWarhead, PersistentDataType.BYTE);
     }
 
     private void traceDetonation(Player player, Location center, String dynamiteId) {

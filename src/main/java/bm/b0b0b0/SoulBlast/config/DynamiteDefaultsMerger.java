@@ -36,8 +36,12 @@ public final class DynamiteDefaultsMerger {
                 continue;
             }
             applyTemplate(current, defaults);
+            migrateHologramLines(current);
             migrateExplosionRoles(current, defaults);
             sanitizeGriefLoot(current);
+            if (TsarBombRules.ID.equals(id)) {
+                syncLastPyreHellScar(current, defaults);
+            }
         }
         dynamites.remove("burial_ember");
         dynamites.remove("ash_tide");
@@ -104,6 +108,16 @@ public final class DynamiteDefaultsMerger {
         current.explosion.blockBudgetMultiplier = defaults.explosion.blockBudgetMultiplier;
         current.purchase.purchaseCooldownSeconds = defaults.purchase.purchaseCooldownSeconds;
         current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;
+    }
+
+    private void migrateHologramLines(DynamiteDefinition current) {
+        String lineTimer = current.hologram.lineTimer;
+        if (lineTimer == null || lineTimer.isBlank()) {
+            return;
+        }
+        if ("{fuse}".equals(lineTimer) || lineTimer.contains("{bar}") || lineTimer.contains("сек")) {
+            current.hologram.lineTimer = "";
+        }
     }
 
     private void migrateExplosionRoles(DynamiteDefinition current, DynamiteDefinition defaults) {
@@ -248,6 +262,9 @@ public final class DynamiteDefaultsMerger {
         current.craterFill.magmaShellWidth = defaults.craterFill.magmaShellWidth;
         current.craterFill.magmaShellLayers = defaults.craterFill.magmaShellLayers;
         current.craterFill.shellMaterial = defaults.craterFill.shellMaterial;
+        current.craterFill.hellFloorScatter = defaults.craterFill.hellFloorScatter;
+        current.craterFill.hellFloorDensity = defaults.craterFill.hellFloorDensity;
+        current.craterFill.hellFloorLavaRatio = defaults.craterFill.hellFloorLavaRatio;
         copyFuseLightning(current.fuseLightning, defaults.fuseLightning);
         copyWarheads(current.warheads, defaults.warheads);
         current.presentation.enabled = defaults.presentation.enabled;
@@ -280,6 +297,25 @@ public final class DynamiteDefaultsMerger {
             current.spreadRadius = defaults.spreadRadius;
             current.realLightning = defaults.realLightning;
         }
+    }
+
+    private void syncLastPyreHellScar(DynamiteDefinition current, DynamiteDefinition defaults) {
+        CraterFillSettings fill = current.explosion.effects.craterFill;
+        CraterFillSettings preset = defaults.explosion.effects.craterFill;
+        fill.enabled = preset.enabled;
+        fill.radius = preset.radius;
+        fill.floorMaterial = preset.floorMaterial;
+        fill.coatMaterial = preset.coatMaterial;
+        fill.floorDepth = preset.floorDepth;
+        fill.lavaChance = preset.lavaChance;
+        fill.allowLavaCoat = preset.allowLavaCoat;
+        fill.magmaShell = preset.magmaShell;
+        fill.magmaShellWidth = preset.magmaShellWidth;
+        fill.magmaShellLayers = preset.magmaShellLayers;
+        fill.shellMaterial = preset.shellMaterial;
+        fill.hellFloorScatter = preset.hellFloorScatter;
+        fill.hellFloorDensity = preset.hellFloorDensity;
+        fill.hellFloorLavaRatio = preset.hellFloorLavaRatio;
     }
 
     private void sanitizeGriefLoot(DynamiteDefinition dynamite) {

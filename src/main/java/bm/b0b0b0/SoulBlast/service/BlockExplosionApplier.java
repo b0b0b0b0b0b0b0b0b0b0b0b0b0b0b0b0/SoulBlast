@@ -53,19 +53,20 @@ public final class BlockExplosionApplier {
     public void applyBlock(ExplosionJob job, ExplosionJob.BlockTarget target, ExplosionChunkContext chunkContext) {
         World world = job.getCenter().getWorld();
         if (world == null) {
+            job.getDiagnostics().recordSkippedOther();
             return;
         }
-        if (!world.isChunkLoaded(target.x() >> 4, target.z() >> 4)) {
-            return;
-        }
+        world.getChunkAt(target.x() >> 4, target.z() >> 4);
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
         if (target.y() < minY || target.y() > maxY) {
+            job.getDiagnostics().recordSkippedOutOfWorld();
             return;
         }
         Player player = job.getSource() instanceof Player sourcePlayer ? sourcePlayer : null;
         Location blockLocation = new Location(world, target.x(), target.y(), target.z());
         if (!regionProtection.allowsExplosionBlock(blockLocation, job.getDynamite(), player)) {
+            job.getDiagnostics().recordRegionBlocked();
             return;
         }
         Block block = chunkContext.blockAt(world, target.x(), target.y(), target.z());
@@ -73,19 +74,38 @@ public final class BlockExplosionApplier {
         if (target.action() == ExplosionBlockAction.CLEAR_LIQUID) {
             if (block.isLiquid() || block.getType() == Material.KELP || block.getType() == Material.SEAGRASS) {
                 block.setType(Material.AIR, edgePhysics);
+                job.getDiagnostics().recordApplied(ExplosionBlockAction.CLEAR_LIQUID, Material.AIR);
+            } else {
+                job.getDiagnostics().recordSkippedOther();
             }
             return;
         }
+        if (target.action() == ExplosionBlockAction.REPLACE) {
+            Material type = block.getType();
+            if (type == Material.BEDROCK || type == Material.BARRIER) {
+                job.getDiagnostics().recordSkippedOther();
+                return;
+            }
+            block.setType(target.placeMaterial(), edgePhysics);
+            job.getDiagnostics().recordApplied(ExplosionBlockAction.REPLACE, target.placeMaterial());
+            return;
+        }
         if (target.action() == ExplosionBlockAction.PLACE) {
-            if (block.getType().isAir() || block.isLiquid()) {
+            Material type = block.getType();
+            if (type.isAir() || block.isLiquid() || type == Material.FIRE || type == Material.SOUL_FIRE) {
                 block.setType(target.placeMaterial(), edgePhysics);
+                job.getDiagnostics().recordApplied(ExplosionBlockAction.PLACE, target.placeMaterial());
+            } else {
+                job.getDiagnostics().recordSkippedOther();
             }
             return;
         }
         if (block.getType().isAir()) {
+            job.getDiagnostics().recordSkippedOther();
             return;
         }
         if (!ExplosionCenter.isWithinRadius(block, job.getCenter(), job.getDynamite().explosion.radius)) {
+            job.getDiagnostics().recordSkippedOther();
             return;
         }
         if (block.getType() == Material.TNT) {
@@ -118,10 +138,12 @@ public final class BlockExplosionApplier {
         if (policy == ExplosionBlockPolicy.OMNIVORE) {
             if (block.isLiquid()) {
                 block.setType(Material.AIR, edgePhysics);
+                job.getDiagnostics().recordApplied(ExplosionBlockAction.BREAK, Material.AIR);
                 return;
             }
             fireSupport.igniteOnSolidBeforeBreak(block, settings, algorithm);
             applyBreak(block, job, null, algorithm, edgePhysics);
+            job.getDiagnostics().recordApplied(ExplosionBlockAction.BREAK, block.getType());
             return;
         }
         if (block.isLiquid()) {
@@ -153,7 +175,7 @@ public final class BlockExplosionApplier {
                 && obsidianShatter.matchesObsidianTarget(block)) {
             return;
         }
-        if (decayBridge != null && decayBridge.supports(block)) {
+        if (decayBridge != null && decayBridge.supports(block) && !TsarBombRules.isTsar(dynamite)) {
             decayBridge.tryApplyExplosionDamage(
                     block,
                     job.getCenter(),

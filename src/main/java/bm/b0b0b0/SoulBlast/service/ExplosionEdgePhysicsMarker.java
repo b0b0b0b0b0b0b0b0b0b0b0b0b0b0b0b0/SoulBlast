@@ -10,6 +10,31 @@ public final class ExplosionEdgePhysicsMarker {
     private ExplosionEdgePhysicsMarker() {
     }
 
+    public static void markPlacementShell(ExplosionJob job, boolean enabled) {
+        job.clearPhysicsEdgeKeys();
+        if (!enabled) {
+            return;
+        }
+        LongOpenHashSet volume = new LongOpenHashSet();
+        for (ExplosionJob.BlockTarget target : job.getPendingBlocks()) {
+            if (isPlacementAction(target.action())) {
+                volume.add(BlockCoordPacker.pack(target.x(), target.y(), target.z()));
+            }
+        }
+        for (ExplosionJob.BlockTarget target : job.getPendingBlocks()) {
+            if (!isPlacementAction(target.action())) {
+                continue;
+            }
+            if (isShell(target.x(), target.y(), target.z(), volume)) {
+                job.addPhysicsEdgeKey(BlockCoordPacker.pack(target.x(), target.y(), target.z()));
+            }
+        }
+    }
+
+    private static boolean isPlacementAction(ExplosionBlockAction action) {
+        return action == ExplosionBlockAction.PLACE || action == ExplosionBlockAction.REPLACE;
+    }
+
     public static void markShell(ExplosionJob job, ExplosionBlockAction action, boolean enabled) {
         job.clearPhysicsEdgeKeys();
         if (!enabled) {

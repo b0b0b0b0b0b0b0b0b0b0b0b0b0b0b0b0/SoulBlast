@@ -34,6 +34,11 @@ public final class DynamiteCooldownService {
     private final Map<UUID, Map<String, Long>> useExpiry = new ConcurrentHashMap<>();
     private PlayerCooldownSettings settings = new PlayerCooldownSettings();
     private List<PlayerCooldownTier> sortedTiers = List.of();
+    private TsarExplosionGate tsarGate;
+
+    public void bindTsarGate(TsarExplosionGate tsarGate) {
+        this.tsarGate = tsarGate;
+    }
 
     public void reload(PlayerCooldownSettings settings) {
         this.settings = settings == null ? new PlayerCooldownSettings() : settings;
@@ -54,7 +59,7 @@ public final class DynamiteCooldownService {
         if (!settings.enabled || player == null || dynamite == null) {
             return CooldownStatus.allowed();
         }
-        if (player.hasPermission(settings.bypassPermission)) {
+        if (bypassAllowed(player, dynamite)) {
             return CooldownStatus.allowed();
         }
         if (kind == CooldownKind.PURCHASE && !settings.applyOnPurchase) {
@@ -68,6 +73,12 @@ public final class DynamiteCooldownService {
             return CooldownStatus.allowed();
         }
         long remaining = remainingSeconds(player.getUniqueId(), resolved.storageKey(), kind);
+        if (TsarBombRules.isTsar(dynamite) && kind == CooldownKind.USE && tsarGate != null) {
+            if (tsarGate.isActive()) {
+                return new CooldownStatus(true, Math.max(remaining, TsarExplosionGate.COOLDOWN_SECONDS), resolved.tierId());
+            }
+            remaining = Math.max(remaining, serverLastPyreRemainingSeconds());
+        }
         if (remaining <= 0) {
             return CooldownStatus.allowed();
         }
@@ -78,7 +89,7 @@ public final class DynamiteCooldownService {
         if (!settings.enabled || player == null || dynamite == null) {
             return;
         }
-        if (player.hasPermission(settings.bypassPermission)) {
+        if (bypassAllowed(player, dynamite)) {
             return;
         }
         if (kind == CooldownKind.PURCHASE && !settings.applyOnPurchase) {
@@ -95,6 +106,13 @@ public final class DynamiteCooldownService {
         Map<UUID, Map<String, Long>> store = kind == CooldownKind.PURCHASE ? purchaseExpiry : useExpiry;
         store.computeIfAbsent(player.getUniqueId(), ignored -> new ConcurrentHashMap<>())
                 .put(resolved.storageKey(), expiresAt);
+    }
+
+    private long serverLastPyreRemainingSeconds() {
+        if (tsarGate == null) {
+            return 0L;
+        }
+        return tsarGate.remainingSeconds();
     }
 
     public static String formatRemaining(long seconds) {
@@ -136,6 +154,24 @@ public final class DynamiteCooldownService {
             return 0L;
         }
         return (remainingMs + 999L) / 1000L;
+    }
+
+    private boolean bypassAllowed(Player player, DynamiteDefinition dynamite) {
+        if (player == null || dynamite == null) {
+            return false;
+        }
+        if (TsarBombRules.ID.equals(dynamite.id) || dynamiteOverride(dynamite.id).noBypass) {
+            return false;
+        }
+        return player.hasPermission(settings.bypassPermission);
+    }
+
+    private PlayerCooldownDynamiteOverride dynamiteOverride(String dynamiteId) {
+        if (dynamiteId == null) {
+            return new PlayerCooldownDynamiteOverride();
+        }
+        PlayerCooldownDynamiteOverride override = settings.dynamites.get(dynamiteId);
+        return override == null ? new PlayerCooldownDynamiteOverride() : override;
     }
 
     private ResolvedCooldown resolve(DynamiteDefinition dynamite, CooldownKind kind) {
@@ -187,6 +223,9 @@ public final class DynamiteCooldownService {
     }
 
     private String storageKey(String dynamiteId, String tierId, CooldownKind kind) {
+        if (TsarBombRules.ID.equals(dynamiteId)) {
+            return dynamiteId + ":" + kind.name();
+        }
         if (settings.sharedTierCooldown) {
             return tierId + ":" + kind.name();
         }

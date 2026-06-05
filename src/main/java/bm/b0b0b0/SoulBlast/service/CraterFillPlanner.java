@@ -21,10 +21,20 @@ import java.util.Random;
 
 public final class CraterFillPlanner {
 
+    private final HellscapeMaskPlanner hellscapeMaskPlanner = new HellscapeMaskPlanner();
+
     public void planIntoJob(ExplosionJob job, ExplosionLimits limits, GeneralSettings general) {
         ExplosionSettings settings = job.getDynamite().explosion;
         CraterFillSettings fill = settings.effects.craterFill;
-        if (!fill.enabled || !TsarBombRules.allowsHellFill(job.getDynamite())) {
+        boolean tsar = TsarBombRules.isTsar(job.getDynamite());
+        if (!tsar && (!fill.enabled || !TsarBombRules.allowsHellFill(job.getDynamite()))) {
+            return;
+        }
+        if (tsar && !fill.enabled) {
+            fill.enabled = true;
+        }
+        if (tsar) {
+            hellscapeMaskPlanner.planIntoJob(job, limits, general);
             return;
         }
         Location center = job.getCenter();
@@ -56,12 +66,12 @@ public final class CraterFillPlanner {
         LongOpenHashSet placeKeys = new LongOpenHashSet();
         boolean onlyLoaded = general.sampleOnlyLoadedChunks;
         boolean extreme = "EXTREME".equalsIgnoreCase(settings.quality);
-        boolean hellScatter = extreme && fill.hellFloorScatter;
+        boolean hellScatter = extreme && fill.hellFloorScatter && !TsarBombRules.isTsar(job.getDynamite());
         Random scatterRandom = hellScatter
                 ? new Random(scatterSeed(cx, cy, cz, job.getDynamite().id))
                 : null;
         List<FillColumn> columns = buildColumns(shellReach, innerSq, outerSq);
-        if (extreme) {
+        if (extreme && !TsarBombRules.isTsar(job.getDynamite())) {
             carveBowl(job, breakKeys, world, cx, cy, cz, fill, innerSq, maxOps / 2, onlyLoaded);
         }
         for (FillColumn column : columns) {
@@ -80,7 +90,9 @@ public final class CraterFillPlanner {
             if (surfaceY == Integer.MIN_VALUE) {
                 continue;
             }
-            surfaceY = clampSurfaceY(world, surfaceY, cy);
+            surfaceY = tsar
+                    ? resolveTsarSurfaceY(world, surfaceY, cy, fill)
+                    : clampSurfaceY(world, surfaceY, cy);
             if (surfaceY == Integer.MIN_VALUE) {
                 continue;
             }
@@ -107,8 +119,8 @@ public final class CraterFillPlanner {
                 continue;
             }
             if (inCrater) {
-                carveColumn(job, breakKeys, world, x, z, surfaceY, fill, extreme);
-                planCraterFloor(job, breakKeys, placeKeys, world, x, z, surfaceY, cy, fill, floor, coat, extreme);
+                carveColumn(job, breakKeys, world, x, z, surfaceY, fill, extreme, tsar);
+                planCraterFloor(job, breakKeys, placeKeys, world, x, z, surfaceY, cy, fill, floor, coat, extreme, tsar);
             }
             if (inShell && shell != null) {
                 planMagmaShell(job, breakKeys, placeKeys, world, x, z, surfaceY, fill, shell);
@@ -241,10 +253,11 @@ public final class CraterFillPlanner {
             int z,
             int surfaceY,
             CraterFillSettings fill,
-            boolean extreme
+            boolean extreme,
+            boolean tsar
     ) {
-        int depth = extreme ? Math.min(4, fill.floorDepth) : fill.floorDepth + 2;
-        int top = clampY(world, surfaceY + (extreme ? 3 : 4));
+        int depth = tsar ? fill.floorDepth + 2 : (extreme ? Math.min(4, fill.floorDepth) : fill.floorDepth + 2);
+        int top = clampY(world, surfaceY + (tsar ? 6 : (extreme ? 3 : 4)));
         int bottom = clampY(world, surfaceY - depth);
         for (int y = bottom; y <= top; y++) {
             enqueueBreak(job, breakKeys, world, x, y, z);
@@ -278,18 +291,21 @@ public final class CraterFillPlanner {
             CraterFillSettings fill,
             Material floor,
             Material coat,
-            boolean extreme
+            boolean extreme,
+            boolean tsar
     ) {
-        int floorLayers = extreme ? Math.min(2, fill.floorDepth) : fill.floorDepth;
+        int floorLayers = tsar ? fill.floorDepth : (extreme ? Math.min(2, fill.floorDepth) : fill.floorDepth);
         for (int depth = 0; depth < floorLayers; depth++) {
             int y = surfaceY - depth;
             enqueueBreak(job, breakKeys, world, x, y, z);
             enqueuePlace(job, placeKeys, x, y, z, floor);
         }
-        if (coat == null || !canPlaceCoat(world, x, z, surfaceY, centerY)) {
+        if (coat == null || !canPlaceCoat(world, x, z, surfaceY, centerY, tsar)) {
             return;
         }
-        int coatLayers = extreme ? 1 : (fill.lavaChance >= 0.999 ? Math.max(2, fill.floorDepth) : 1);
+        int coatLayers = tsar
+                ? Math.max(3, fill.floorDepth / 3)
+                : (extreme ? 1 : (fill.lavaChance >= 0.999 ? Math.max(2, fill.floorDepth) : 1));
         for (int layer = 0; layer < coatLayers; layer++) {
             int coatY = surfaceY + 1 + layer;
             if (!isOpenPitCell(world, x, coatY, z)) {
@@ -313,8 +329,19 @@ public final class CraterFillPlanner {
         return BukkitKeys.material(fill.coatMaterial);
     }
 
-    private static boolean canPlaceCoat(World world, int x, int z, int surfaceY, int centerY) {
+    private static boolean canPlaceCoat(World world, int x, int z, int surfaceY, int centerY, boolean tsar) {
+        if (tsar) {
+            return isOpenPitCell(world, x, surfaceY + 1, z);
+        }
         return surfaceY <= centerY + 2 && isOpenPitCell(world, x, surfaceY + 1, z);
+    }
+
+    private static int resolveTsarSurfaceY(World world, int surfaceY, int centerY, CraterFillSettings fill) {
+        int rimCap = centerY + (int) Math.ceil(fill.radius * 0.55);
+        if (surfaceY > rimCap) {
+            surfaceY = centerY - (int) Math.ceil(fill.radius * 0.38);
+        }
+        return clampY(world, surfaceY);
     }
 
     private static boolean isOpenPitCell(World world, int x, int y, int z) {

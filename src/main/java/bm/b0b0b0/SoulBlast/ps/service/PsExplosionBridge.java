@@ -87,11 +87,16 @@ public final class PsExplosionBridge {
         DynamiteDefinition dynamite = job.getDynamite();
         trace.explosionPassStart(center, dynamite.id, store.size());
         Set<PsBlockKey> processed = new HashSet<>();
+        double reachSquared = explosionReachSquared(dynamite);
+        double regionReachSquared = regionReachSquared(reachSquared);
         bridge.protectBlockAt(center).ifPresent(block ->
                 tryApplyProximityForBlock(job, center, world, dynamite, block, processed)
         );
         for (PsBlockState stored : store.all()) {
             Block block = world.getBlockAt(stored.key().x(), stored.key().y(), stored.key().z());
+            if (!mightAffectStored(center, block, stored, reachSquared)) {
+                continue;
+            }
             if (!isProtectionCandidate(block)) {
                 trace.skipped("store " + stored.key().x() + "," + stored.key().y() + "," + stored.key().z()
                         + " — блок не распознан как приват (PS API)");
@@ -99,39 +104,49 @@ public final class PsExplosionBridge {
             }
             tryApplyProximityForBlock(job, center, world, dynamite, block, processed);
         }
-        scanProtectBlocksNearExplosion(job, center, world, dynamite, processed);
         for (Block block : WorldGuardRegionScan.listProtectionStoneBlocks(plugin, bridge, world)) {
+            if (!block.getWorld().equals(world)) {
+                continue;
+            }
+            if (!withinReachSquared(center, block, regionReachSquared)) {
+                continue;
+            }
             tryApplyProximityForBlock(job, center, world, dynamite, block, processed);
         }
     }
 
-    private void scanProtectBlocksNearExplosion(
-            ExplosionJob job,
-            Location center,
-            World world,
-            DynamiteDefinition dynamite,
-            Set<PsBlockKey> processed
-    ) {
-        int horizontal = (int) Math.ceil(Math.max(8.0, dynamite.explosion.radius + 3.0));
-        int vertical = (int) Math.ceil(Math.max(6.0, dynamite.explosion.radius + 2.0));
-        int cx = center.getBlockX();
-        int cy = center.getBlockY();
-        int cz = center.getBlockZ();
-        int horizontalSquared = horizontal * horizontal;
-        for (int dx = -horizontal; dx <= horizontal; dx++) {
-            for (int dy = -vertical; dy <= vertical; dy++) {
-                for (int dz = -horizontal; dz <= horizontal; dz++) {
-                    if (dx * dx + dz * dz > horizontalSquared) {
-                        continue;
-                    }
-                    Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
-                    if (!isProtectionCandidate(block)) {
-                        continue;
-                    }
-                    tryApplyProximityForBlock(job, center, world, dynamite, block, processed);
-                }
+    private double explosionReachSquared(DynamiteDefinition dynamite) {
+        double reach = Math.max(8.0, dynamite.explosion.radius + 2.0);
+        for (PsProtectionTypeDefinition type : types.allTypes()) {
+            if (type.durability.proximityRadius >= 0.0) {
+                reach = Math.max(reach, type.durability.proximityRadius);
             }
         }
+        return reach * reach;
+    }
+
+    private static double regionReachSquared(double reachSquared) {
+        double reach = Math.sqrt(reachSquared) + 128.0;
+        return reach * reach;
+    }
+
+    private boolean mightAffectStored(
+            Location center,
+            Block block,
+            PsBlockState state,
+            double reachSquared
+    ) {
+        if (withinReachSquared(center, block, reachSquared)) {
+            return true;
+        }
+        return centerInsideRegionBox(center, state);
+    }
+
+    private static boolean withinReachSquared(Location center, Block block, double reachSquared) {
+        double dx = center.getX() - (block.getX() + 0.5);
+        double dy = center.getY() - (block.getY() + 0.5);
+        double dz = center.getZ() - (block.getZ() + 0.5);
+        return dx * dx + dy * dy + dz * dz <= reachSquared;
     }
 
     private void tryApplyProximityForBlock(
@@ -284,10 +299,10 @@ public final class PsExplosionBridge {
         if (block == null) {
             return false;
         }
-        if (bridge.isProtectBlock(block)) {
+        if (types.findBlock(block).isPresent()) {
             return true;
         }
-        return types.resolveAlias(block).isPresent();
+        return bridge.isProtectBlock(block);
     }
 
     private void debugSkip(Block block, String reason) {

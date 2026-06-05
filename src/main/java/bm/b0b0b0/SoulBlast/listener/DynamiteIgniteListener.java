@@ -43,7 +43,6 @@ public final class DynamiteIgniteListener implements Listener {
     private final DynamiteRegistry registry;
     private final DynamiteItemFactory itemFactory;
     private final PlacedDynamiteTracker placedTracker;
-    private final PrimedDynamiteService primedService;
     private final MessageService messages;
     private final RegionProtectionService regionProtection;
     private final RegionProtectionMessenger regionMessages;
@@ -55,7 +54,6 @@ public final class DynamiteIgniteListener implements Listener {
             DynamiteRegistry registry,
             DynamiteItemFactory itemFactory,
             PlacedDynamiteTracker placedTracker,
-            PrimedDynamiteService primedService,
             MessageService messages,
             RegionProtectionService regionProtection,
             RegionProtectionMessenger regionMessages,
@@ -66,7 +64,6 @@ public final class DynamiteIgniteListener implements Listener {
         this.registry = registry;
         this.itemFactory = itemFactory;
         this.placedTracker = placedTracker;
-        this.primedService = primedService;
         this.messages = messages;
         this.regionProtection = regionProtection;
         this.regionMessages = regionMessages;
@@ -141,6 +138,20 @@ public final class DynamiteIgniteListener implements Listener {
             if (player != null) {
                 regionMessages.sendBlocked(player, regionCheck, definition.get());
             }
+            return;
+        }
+        PrimedDynamiteService primedService = plugin.getPrimedDynamiteService();
+        if (primedService == null) {
+            event.setCancelled(true);
+            return;
+        }
+        if (player != null && cooldownMessages.blockLastPyrePlace(
+                player,
+                definition.get(),
+                primedService,
+                plugin.getTsarExplosionGate()
+        )) {
+            event.setCancelled(true);
             return;
         }
         if (player != null && cooldownMessages.blockUse(player, definition.get())) {
@@ -219,6 +230,10 @@ public final class DynamiteIgniteListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onProjectileHit(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof TNTPrimed primed)) {
+            return;
+        }
+        PrimedDynamiteService primedService = plugin.getPrimedDynamiteService();
+        if (primedService == null) {
             return;
         }
         Optional<DynamiteDefinition> definition = primedService.resolvePrimed(primed);

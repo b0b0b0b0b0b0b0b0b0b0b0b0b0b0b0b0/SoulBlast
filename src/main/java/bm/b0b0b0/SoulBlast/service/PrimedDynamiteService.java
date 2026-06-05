@@ -8,10 +8,10 @@ import bm.b0b0b0.SoulBlast.message.MessageService;
 import bm.b0b0b0.SoulBlast.model.PrimedDynamiteSession;
 import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
 import bm.b0b0b0.SoulBlast.util.PluginKeys;
+import bm.b0b0b0.SoulBlast.util.TextParser;
 import bm.b0b0b0.SoulBlast.util.TextUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.EntityType;
@@ -21,10 +21,12 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class PrimedDynamiteService {
 
@@ -44,7 +46,7 @@ public final class PrimedDynamiteService {
     private PrimedDynamiteMisfireService misfireService;
     private PrimedDynamiteDetonationService detonationService;
     private TsarWarheadService warheadService;
-    private final Map<UUID, PrimedDynamiteSession> sessions = new HashMap<>();
+    private final Map<UUID, PrimedDynamiteSession> sessions = new ConcurrentHashMap<>();
 
     public PrimedDynamiteService(
             JavaPlugin plugin,
@@ -78,6 +80,22 @@ public final class PrimedDynamiteService {
 
     public Optional<PrimedDynamiteSession> session(UUID entityId) {
         return Optional.ofNullable(sessions.get(entityId));
+    }
+
+    public boolean hasLiveLastPyreFrom(Player player) {
+        if (player == null) {
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
+        for (PrimedDynamiteSession session : sessions.values()) {
+            if (!TsarBombRules.isTsar(session.getDefinition())) {
+                continue;
+            }
+            if (playerId.equals(session.getPlacerId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public CollectionView sessions() {
@@ -136,16 +154,24 @@ public final class PrimedDynamiteService {
         }
         primed.setFuseTicks(fuseTicks);
         primed.setVelocity(velocity);
+        session(primed.getUniqueId()).ifPresent(tracked -> tracked.setFuseTicksRemaining(fuseTicks));
         return primed;
     }
 
     public void respawnDudEntity(PrimedDynamiteSession session) {
+        if (!session.isDudActive()) {
+            return;
+        }
         Location at = session.lastLocation();
         if (at == null || at.getWorld() == null) {
             return;
         }
         DynamiteDefinition definition = session.getDefinition();
         UUID oldId = session.getEntityId();
+        Entity oldEntity = plugin.getServer().getEntity(oldId);
+        if (oldEntity != null && !oldEntity.isDead()) {
+            oldEntity.remove();
+        }
         sessions.remove(oldId);
         TNTPrimed primed = (TNTPrimed) at.getWorld().spawnEntity(at, EntityType.TNT);
         primed.getPersistentDataContainer().set(keys.primedDynamiteId, PersistentDataType.STRING, definition.id);
@@ -160,8 +186,39 @@ public final class PrimedDynamiteService {
         session.rememberLocation(at);
         sessions.put(primed.getUniqueId(), session);
         if (misfireService != null) {
-            misfireService.enterDudState(primed, session);
+            misfireService.restoreDudEntity(primed, session);
         }
+    }
+
+    public Optional<PrimedDynamiteSession> findSessionForRecall(TNTPrimed primed) {
+        Optional<PrimedDynamiteSession> direct = session(primed.getUniqueId());
+        if (direct.isPresent()) {
+            return direct;
+        }
+        String dynamiteId = primed.getPersistentDataContainer().get(keys.primedDynamiteId, PersistentDataType.STRING);
+        if (dynamiteId == null) {
+            return Optional.empty();
+        }
+        String placerRaw = primed.getPersistentDataContainer().get(keys.primedPlacerId, PersistentDataType.STRING);
+        for (PrimedDynamiteSession tracked : new ArrayList<>(sessions.values())) {
+            if (!tracked.isDudActive() || !dynamiteId.equals(tracked.getDynamiteId())) {
+                continue;
+            }
+            if (placerRaw == null || tracked.getPlacerId() == null) {
+                continue;
+            }
+            if (placerRaw.equals(tracked.getPlacerId().toString())) {
+                return Optional.of(tracked);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public void shutdown() {
+        for (PrimedDynamiteSession session : new ArrayList<>(sessions.values())) {
+            disposeSession(session);
+        }
+        sessions.clear();
     }
 
     public void removeSession(UUID entityId) {
@@ -169,24 +226,50 @@ public final class PrimedDynamiteService {
         if (session == null) {
             return;
         }
+        removeHologram(session);
         fuseLightningService.cancelSession(session);
-        if (session.getHologram() != null && !session.getHologram().isDead()) {
-            session.getHologram().remove();
+    }
+
+    public void disposeSession(PrimedDynamiteSession session) {
+        if (session == null) {
+            return;
+        }
+        removeHologram(session);
+        fuseLightningService.cancelSession(session);
+        sessions.entrySet().removeIf(entry -> entry.getValue() == session);
+    }
+
+    public void removeHologram(PrimedDynamiteSession session) {
+        if (session == null) {
+            return;
+        }
+        TextDisplay display = session.getHologram();
+        UUID hologramId = session.getHologramId();
+        session.clearHologram();
+        if (display != null && display.isValid()) {
+            display.remove();
+        }
+        if (hologramId != null) {
+            org.bukkit.entity.Entity orphan = plugin.getServer().getEntity(hologramId);
+            if (orphan != null && orphan.isValid()) {
+                orphan.remove();
+            }
         }
     }
 
     public void tickGlowAndHologram() {
-        for (PrimedDynamiteSession session : sessions.values()) {
+        for (PrimedDynamiteSession session : new ArrayList<>(sessions.values())) {
             org.bukkit.entity.Entity entity = plugin.getServer().getEntity(session.getEntityId());
             if (!(entity instanceof TNTPrimed primed) || primed.isDead()) {
-                removeSession(session.getEntityId());
+                disposeSession(session);
                 continue;
             }
             session.rememberLocation(primed.getLocation());
             if (misfireService != null) {
                 misfireService.maintainDudFuse(primed, session);
             }
-            updateHologram(session, primed);
+            int fuseTicks = tickFuseCountdown(session, primed);
+            updateHologram(session, primed, fuseTicks);
             applyGlowAnimation(session, primed);
             visualService.tickParticles(primed, session.getDefinition(), session.getGlowPhase());
             if (!session.isDudActive()
@@ -205,45 +288,67 @@ public final class PrimedDynamiteService {
             }
             if (detonationService != null
                     && !session.isDudActive()
-                    && primed.getFuseTicks() <= 0) {
+                    && fuseTicks <= 0) {
                 detonationService.detonate(primed, session.getDefinition());
             }
         }
     }
 
+    private int tickFuseCountdown(PrimedDynamiteSession session, TNTPrimed primed) {
+        if (session.isDudActive()) {
+            int entityFuse = Math.max(0, primed.getFuseTicks());
+            primed.setFuseTicks(entityFuse);
+            return entityFuse;
+        }
+        int remaining = session.getFuseTicksRemaining();
+        primed.setFuseTicks(remaining);
+        if (remaining <= 0) {
+            return 0;
+        }
+        remaining = session.tickFuseCountdown();
+        primed.setFuseTicks(remaining);
+        return remaining;
+    }
+
     private void attachHologram(PrimedDynamiteSession session, TNTPrimed primed) {
         HologramSettings hologram = session.getDefinition().hologram;
         if (!hologram.enabled) {
+            removeHologram(session);
             return;
         }
+        removeHologram(session);
         Location at = primed.getLocation().clone().add(0, hologram.offsetY, 0);
         TextDisplay display = (TextDisplay) primed.getWorld().spawnEntity(at, EntityType.TEXT_DISPLAY);
         display.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
         display.setSeeThrough(true);
         display.setShadowed(false);
-        display.text(LegacyComponentSerializer.legacyAmpersand().deserialize(formatHologram(session, primed)));
+        applyHologramText(display, formatHologram(session, primed, session.getFuseTicksRemaining()));
         session.setHologram(display);
     }
 
-    private void updateHologram(PrimedDynamiteSession session, TNTPrimed primed) {
-        TextDisplay display = session.getHologram();
-        if (display == null || display.isDead()) {
+    private void updateHologram(PrimedDynamiteSession session, TNTPrimed primed, int fuseTicks) {
+        HologramSettings hologram = session.getDefinition().hologram;
+        if (!hologram.enabled) {
             return;
         }
-        Location target = primed.getLocation().clone().add(0, session.getDefinition().hologram.offsetY, 0);
+        TextDisplay display = session.getHologram();
+        if (display == null || display.isDead()) {
+            attachHologram(session, primed);
+            return;
+        }
+        Location target = primed.getLocation().clone().add(0, hologram.offsetY, 0);
         display.teleport(target);
-        display.text(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                formatHologram(session, primed)
-        ));
+        applyHologramText(display, formatHologram(session, primed, fuseTicks));
     }
 
-    private String formatHologram(PrimedDynamiteSession session, TNTPrimed primed) {
+    private void applyHologramText(TextDisplay display, String raw) {
+        display.text(TextParser.parse(raw));
+    }
+
+    private String formatHologram(PrimedDynamiteSession session, TNTPrimed primed, int fuseTicks) {
         DynamiteDefinition definition = session.getDefinition();
         HologramSettings settings = definition.hologram;
-        Map<String, String> placeholders = Map.of(
-                "fuse", String.format("%.1f", primed.getFuseTicks() / 20.0),
-                "display", TextUtil.apply(definition.item.displayName, Map.of("dyn_id", definition.id))
-        );
+        Map<String, String> placeholders = hologramPlaceholders(session, definition, fuseTicks);
         if (session.isDudActive()) {
             StringBuilder dud = new StringBuilder(messages.format("fuse-hologram-misfire-active", placeholders));
             dud.append('\n').append(messages.format("fuse-hologram-misfire-idle", Map.of()));
@@ -263,6 +368,43 @@ public final class PrimedDynamiteService {
             text.append('\n').append(messages.format("fuse-hologram-recall", Map.of()));
         }
         return text.toString();
+    }
+
+    private Map<String, String> hologramPlaceholders(
+            PrimedDynamiteSession session,
+            DynamiteDefinition definition,
+            int fuseTicks
+    ) {
+        int secondsLeft = fuseSecondsLeft(fuseTicks);
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("dyn_id", definition.id);
+        placeholders.put(
+                "display",
+                TextUtil.apply(definition.item.displayName, Map.of("dyn_id", definition.id))
+        );
+        placeholders.put("fuse", Integer.toString(secondsLeft));
+        placeholders.put("color", fuseUrgencyColor(secondsLeft));
+        return placeholders;
+    }
+
+    private int fuseSecondsLeft(int fuseTicks) {
+        if (fuseTicks <= 0) {
+            return 0;
+        }
+        return (fuseTicks + 19) / 20;
+    }
+
+    private String fuseUrgencyColor(int secondsLeft) {
+        if (secondsLeft <= 1) {
+            return "&c&l";
+        }
+        if (secondsLeft <= 3) {
+            return "&c";
+        }
+        if (secondsLeft <= 8) {
+            return "&e";
+        }
+        return "&f";
     }
 
     private String pickLine(String override, String messageKey, Map<String, String> placeholders) {
