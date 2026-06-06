@@ -2,6 +2,7 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.ExplosionEffectsSettings;
 import bm.b0b0b0.SoulBlast.config.GeneralSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -10,6 +11,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 public final class TsarGradualDrainService {
+
+    private final CoreProtectBridge coreProtect;
+
+    public TsarGradualDrainService(CoreProtectBridge coreProtect) {
+        this.coreProtect = coreProtect;
+    }
 
     public boolean tick(ExplosionJob job, int budget, GeneralSettings general) {
         ExplosionEffectsSettings effects = job.getDynamite().explosion.effects;
@@ -28,7 +35,7 @@ public final class TsarGradualDrainService {
             if (ring > maxRing) {
                 return true;
             }
-            RingDrainResult result = drainRing(world, center, ring, radius, effects, general, budget);
+            RingDrainResult result = drainRing(job, world, center, ring, radius, effects, general, budget);
             budget = result.budgetLeft();
             if (result.cleared() > 0 && ring % 4 == 0) {
                 playDrainPulse(world, center, ring);
@@ -42,7 +49,8 @@ public final class TsarGradualDrainService {
         return job.getTsarDrainRing() > maxRing;
     }
 
-    private static RingDrainResult drainRing(
+    private RingDrainResult drainRing(
+            ExplosionJob job,
             World world,
             Location center,
             int ring,
@@ -86,6 +94,9 @@ public final class TsarGradualDrainService {
                     if (budget <= 0) {
                         ringComplete = false;
                         break outer;
+                    }
+                    if (coreProtect != null) {
+                        coreProtect.logLiquidClear(job, block);
                     }
                     block.setType(Material.AIR, false);
                     cleared++;

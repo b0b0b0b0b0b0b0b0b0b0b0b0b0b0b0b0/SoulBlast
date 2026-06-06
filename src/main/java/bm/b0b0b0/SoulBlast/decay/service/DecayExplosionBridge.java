@@ -1,8 +1,9 @@
 package bm.b0b0b0.SoulBlast.decay.service;
 
 import bm.b0b0b0.SoulBlast.config.BlockExplosionRule;
-import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
+import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.decay.config.DecayBlockTypeDefinition;
 import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralSettings;
 import bm.b0b0b0.SoulBlast.decay.model.DecayingBlockKey;
@@ -20,6 +21,7 @@ public final class DecayExplosionBridge {
     private final DecayingBlockStore store;
     private final DecayBlockBreaker breaker;
     private final DecayCrackBroadcaster crackBroadcaster;
+    private CoreProtectBridge coreProtect;
 
     public DecayExplosionBridge(
             DecayGeneralSettings general,
@@ -35,6 +37,10 @@ public final class DecayExplosionBridge {
         this.store = store;
         this.breaker = breaker;
         this.crackBroadcaster = crackBroadcaster;
+    }
+
+    public void bindCoreProtect(CoreProtectBridge coreProtect) {
+        this.coreProtect = coreProtect;
     }
 
     public boolean isEnabled() {
@@ -60,8 +66,7 @@ public final class DecayExplosionBridge {
 
     public boolean tryApplyExplosionDamage(
             Block block,
-            Location explosionCenter,
-            DynamiteDefinition dynamite,
+            ExplosionJob job,
             BlockExplosionRule rule,
             ExplosionAlgorithmSettings algorithm,
             boolean edgePhysics,
@@ -83,11 +88,11 @@ public final class DecayExplosionBridge {
                 ? existing
                 : createState(key, block, type.get(), rule);
         float hit = damageResolver.rollHit(
-                dynamite.id,
+                job.getDynamite().id,
                 type.get().resistance,
-                explosionCenter,
+                job.getCenter(),
                 block,
-                dynamite.explosion.radius
+                job.getDynamite().explosion.radius
         );
         if (rayBoosted && algorithm.waveRayOverlayDecayMultiplier > 1.0f) {
             float bonus = hit * (algorithm.waveRayOverlayDecayMultiplier - 1.0f);
@@ -97,6 +102,9 @@ public final class DecayExplosionBridge {
         if (state.isBroken()) {
             crackBroadcaster.clearBlock(state);
             store.remove(key);
+            if (coreProtect != null) {
+                coreProtect.logBreak(job, block);
+            }
             breaker.finalizeBreak(block, state, algorithm, edgePhysics);
             return true;
         }

@@ -58,6 +58,7 @@ public final class SoulBlastStartupBanner {
     public void finishIntegrations(SoulBlast plugin) {
         console.blank();
         console.info("Интеграции:");
+        plugin.getCoreProtectBridge().reload(plugin.getPluginConfig().coreProtectIntegration);
         PluginIntegrationsReporter.report(
                 plugin,
                 plugin.getPluginConfig().regionProtection,
@@ -66,6 +67,8 @@ public final class SoulBlastStartupBanner {
                         : plugin.regionProtectionService().regionBackend(),
                 plugin.getPluginConfig().economy,
                 plugin.vaultEconomyBridge(),
+                plugin.getPluginConfig().coreProtectIntegration,
+                plugin.getCoreProtectBridge(),
                 console
         );
         PsModule psModule = plugin.getPsModule();

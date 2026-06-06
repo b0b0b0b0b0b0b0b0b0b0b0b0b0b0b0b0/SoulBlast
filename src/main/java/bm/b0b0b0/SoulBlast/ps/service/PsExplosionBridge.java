@@ -1,6 +1,7 @@
 package bm.b0b0b0.SoulBlast.ps.service;
 
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.integration.worldguard.WorldGuardRegionScan;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.ps.config.PsDurabilitySettings;
@@ -35,6 +36,7 @@ public final class PsExplosionBridge {
     private final PsBlockPersistence persistence;
     private final PsDebugLog debug;
     private final PsDurabilityTrace trace;
+    private final CoreProtectBridge coreProtect;
 
     public PsExplosionBridge(
             JavaPlugin plugin,
@@ -46,7 +48,8 @@ public final class PsExplosionBridge {
             PsLifecycleService lifecycle,
             PsBlockPersistence persistence,
             PsDebugLog debug,
-            PsDurabilityTrace trace
+            PsDurabilityTrace trace,
+            CoreProtectBridge coreProtect
     ) {
         this.plugin = plugin;
         this.settings = settings;
@@ -58,6 +61,7 @@ public final class PsExplosionBridge {
         this.persistence = persistence;
         this.debug = debug;
         this.trace = trace;
+        this.coreProtect = coreProtect;
     }
 
     public boolean tryAbsorbExplosion(Block block, DynamiteDefinition dynamite, ExplosionJob job) {
@@ -202,7 +206,7 @@ public final class PsExplosionBridge {
             return;
         }
         job.markPsDurabilityHit(key.x(), key.y(), key.z());
-        applyDurabilityDamage(block, type.get(), damage, dynamite.id);
+        applyDurabilityDamage(job, block, type.get(), damage, dynamite.id);
     }
 
     private PsBlockState resolveStoredState(World world, Block block) {
@@ -280,7 +284,7 @@ public final class PsExplosionBridge {
         if (job != null) {
             job.markPsDurabilityHit(block.getX(), block.getY(), block.getZ());
         }
-        applyDurabilityDamage(block, type.get(), damage, dynamite.id);
+        applyDurabilityDamage(job, block, type.get(), damage, dynamite.id);
         return true;
     }
 
@@ -376,7 +380,13 @@ public final class PsExplosionBridge {
         return state;
     }
 
-    private void applyDurabilityDamage(Block block, PsProtectionTypeDefinition type, int damage, String dynamiteId) {
+    private void applyDurabilityDamage(
+            ExplosionJob job,
+            Block block,
+            PsProtectionTypeDefinition type,
+            int damage,
+            String dynamiteId
+    ) {
         PsBlockState state = resolveStoredState(block.getWorld(), block);
         if (state == null) {
             Optional<String> alias = types.resolveAlias(block);
@@ -395,6 +405,7 @@ public final class PsExplosionBridge {
         if (!type.durability.enabled) {
             bridge.deleteRegion(block);
             lifecycle.onRemove(block);
+            logProtectBlockBreak(job, block);
             block.setType(org.bukkit.Material.AIR, false);
             return;
         }
@@ -409,8 +420,15 @@ public final class PsExplosionBridge {
         if (state.isBroken()) {
             bridge.deleteRegion(block);
             lifecycle.onRemove(block);
+            logProtectBlockBreak(job, block);
             block.setType(org.bukkit.Material.AIR, false);
             persistence.removeState(key);
+        }
+    }
+
+    private void logProtectBlockBreak(ExplosionJob job, Block block) {
+        if (coreProtect != null && job != null) {
+            coreProtect.logBreak(job, block);
         }
     }
 

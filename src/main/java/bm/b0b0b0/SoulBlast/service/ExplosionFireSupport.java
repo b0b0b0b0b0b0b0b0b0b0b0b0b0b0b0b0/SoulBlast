@@ -4,6 +4,8 @@ import bm.b0b0b0.SoulBlast.config.CraterFillSettings;
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
 import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
+import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -13,9 +15,19 @@ import java.util.Random;
 
 public final class ExplosionFireSupport {
 
+    private final CoreProtectBridge coreProtect;
     private final Random random = new Random();
 
-    public void igniteOnSolidBeforeBreak(Block block, ExplosionSettings settings, ExplosionAlgorithmSettings algorithm) {
+    public ExplosionFireSupport(CoreProtectBridge coreProtect) {
+        this.coreProtect = coreProtect;
+    }
+
+    public void igniteOnSolidBeforeBreak(
+            ExplosionJob job,
+            Block block,
+            ExplosionSettings settings,
+            ExplosionAlgorithmSettings algorithm
+    ) {
         if (!settings.createFire || algorithm.fireChance <= 0) {
             return;
         }
@@ -32,12 +44,17 @@ public final class ExplosionFireSupport {
             return;
         }
         above.setType(Material.FIRE, false);
+        if (coreProtect != null) {
+            coreProtect.logPlace(job, above);
+        }
     }
 
-    public void igniteHellscape(Location center, DynamiteDefinition dynamite) {
+    public void igniteHellscape(ExplosionJob job) {
+        DynamiteDefinition dynamite = job.getDynamite();
         if (!dynamite.explosion.createFire) {
             return;
         }
+        Location center = job.getCenter();
         World world = center.getWorld();
         if (world == null) {
             return;
@@ -77,6 +94,9 @@ public final class ExplosionFireSupport {
                         continue;
                     }
                     above.setType(Material.FIRE, false);
+                    if (coreProtect != null) {
+                        coreProtect.logPlace(job, above);
+                    }
                 }
             }
         }
@@ -100,7 +120,9 @@ public final class ExplosionFireSupport {
         return random.nextDouble() < 0.28;
     }
 
-    public void removeUnsupportedFire(Location center, float radius) {
+    public void removeUnsupportedFire(ExplosionJob job) {
+        Location center = job.getCenter();
+        float radius = job.getDynamite().explosion.radius;
         World world = center.getWorld();
         if (world == null) {
             return;
@@ -130,6 +152,9 @@ public final class ExplosionFireSupport {
                     Block below = block.getRelative(0, -1, 0);
                     Material belowType = below.getType();
                     if (!belowType.isSolid() || belowType == Material.FIRE) {
+                        if (coreProtect != null) {
+                            coreProtect.logBreak(job, block);
+                        }
                         block.setType(Material.AIR, false);
                     }
                 }

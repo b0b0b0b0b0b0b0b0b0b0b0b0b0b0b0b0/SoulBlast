@@ -17,10 +17,11 @@ softdepend:
   - WorldGuard
   - ProtectionStones
   - LuckPerms
+  - CoreProtect
 commands:
   soulblast:
     description: SoulBlast dynamite management
-    usage: /soulblast give <player> <id> [amount] | menu | reload
+    usage: /soulblast give <player> <id> [amount] | menu | reload | rollback <user> <radius> <time>
     permission: soulblast.use
   soulgrimoire:
     description: Open SoulBlast grimoire menu
@@ -43,6 +44,8 @@ permissions:
   soulblast.menu:
     default: true
   soulblast.reload:
+    default: op
+  soulblast.rollback:
     default: op
   soulblast.decay.menu:
     default: true

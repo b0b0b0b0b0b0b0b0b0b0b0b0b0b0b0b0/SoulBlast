@@ -196,6 +196,16 @@ public final class DynamiteDefaultsMerger {
     }
 
     private void sanitizePurchaseCooldowns(DynamiteDefinition current, DynamiteDefinition defaults) {
+        if ("last_pyre".equals(current.id)) {
+            PurchaseResolution defaultPurchase = defaults.purchase.resolve();
+            PurchaseResolution currentPurchase = current.purchase.resolve();
+            if (defaultPurchase.type() == PurchaseType.VANILLA_TNT
+                    && currentPurchase.amount() < defaultPurchase.amount()) {
+                current.purchase.type = defaults.purchase.type;
+                current.purchase.amount = defaults.purchase.amount;
+                current.purchase.consolidate();
+            }
+        }
         if ("last_pyre".equals(current.id) && defaults.purchase.useCooldownSeconds > 0) {
             current.purchase.useCooldownSeconds = defaults.purchase.useCooldownSeconds;
         }

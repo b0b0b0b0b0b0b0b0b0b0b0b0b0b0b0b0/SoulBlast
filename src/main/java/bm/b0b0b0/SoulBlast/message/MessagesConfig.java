@@ -52,7 +52,21 @@ public class MessagesConfig extends YamlSerializable {
 
 
 
-    public String commandUsage = "{prefix}&7/soulblast give <игрок> <id> [кол-во] | menu | reload &8| &7/soulgrimoire";
+    public String commandUsage = "{prefix}&7/soulblast give <игрок> <id> [кол-во] | menu | reload | rollback <ник> <радиус> <время> &8| &7/soulgrimoire";
+
+    public String coreprotectMissing = "{prefix}&cCoreProtect не найден или API выключен.";
+
+    public String coreprotectRollbackStarted = "{prefix}&7Откат &f{user} &7в радиусе &f{radius} &7за &f{time}&7...";
+
+    public String coreprotectRollbackDone = "{prefix}&aОткат завершён. Записей&8: &f{changes}";
+
+    public String coreprotectRollbackEmpty = "{prefix}&cЗаписей 0. Взрывы пишутся как &f{user}&c. Стоя в центре кратера&8: &f/co lookup r:50 t:5m u:{user} a:block #count";
+
+    public String coreprotectRollbackFailed = "{prefix}&cОткат не удался&8: &f{detail}";
+
+    public String coreprotectRollbackInvalid = "{prefix}&cНеверный радиус или время. Пример&8: &f3600 &7или &f1h";
+
+    public String coreprotectRollbackCenter = "{prefix}&cНужна позиция&8: &7встань в центр кратера или пусть игрок онлайн.";
 
 
 

@@ -5,6 +5,7 @@ import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
 import bm.b0b0b0.SoulBlast.decay.service.DecayDamageResolver;
 import bm.b0b0b0.SoulBlast.decay.service.DecayExplosionBridge;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,15 +18,18 @@ public final class ObsidianInstantShatterService {
     private final BlastResistanceService resistanceService;
     private final DecayDamageResolver damageResolver;
     private final DecayExplosionBridge decayBridge;
+    private final CoreProtectBridge coreProtect;
 
     public ObsidianInstantShatterService(
             BlastResistanceService resistanceService,
             DecayDamageResolver damageResolver,
-            DecayExplosionBridge decayBridge
+            DecayExplosionBridge decayBridge,
+            CoreProtectBridge coreProtect
     ) {
         this.resistanceService = resistanceService;
         this.damageResolver = damageResolver;
         this.decayBridge = decayBridge;
+        this.coreProtect = coreProtect;
     }
 
     public boolean isEnabled(ExplosionAlgorithmSettings algorithm) {
@@ -58,6 +62,9 @@ public final class ObsidianInstantShatterService {
             decayBridge.clearTracked(block);
         }
         Material material = block.getType();
+        if (coreProtect != null) {
+            coreProtect.logBreak(job, block);
+        }
         applyBreakRule(block, rule, algorithm, edgePhysics);
         ExplosionPresentationEffects.playObsidianBlockShatter(
                 block.getLocation().add(0.5, 0.5, 0.5),

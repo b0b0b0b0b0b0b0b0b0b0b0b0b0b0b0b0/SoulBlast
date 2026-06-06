@@ -27,6 +27,7 @@ public final class SoulBlastCommand implements CommandExecutor, TabCompleter {
     private final DynamiteItemFactory itemFactory;
     private final MessageService messages;
     private final SoulGrimoireMenuService menuService;
+    private final CoreProtectRollbackCommand rollbackCommand;
 
     public SoulBlastCommand(
             SoulBlast plugin,
@@ -40,6 +41,11 @@ public final class SoulBlastCommand implements CommandExecutor, TabCompleter {
         this.itemFactory = itemFactory;
         this.messages = messages;
         this.menuService = menuService;
+        this.rollbackCommand = new CoreProtectRollbackCommand(
+                plugin,
+                plugin.getCoreProtectBridge(),
+                messages
+        );
     }
 
     @Override
@@ -53,6 +59,7 @@ public final class SoulBlastCommand implements CommandExecutor, TabCompleter {
             case "reload" -> handleReload(sender);
             case "menu" -> handleMenu(sender);
             case "give" -> handleGive(sender, args);
+            case "rollback" -> rollbackCommand.handle(sender, args);
             default -> {
                 messages.send(sender, "command-usage");
                 yield true;
@@ -129,7 +136,7 @@ public final class SoulBlastCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("give", "menu", "reload"), args[0]);
+            return filter(List.of("give", "menu", "reload", "rollback"), args[0]);
         }
         if (args.length == 2 && "give".equalsIgnoreCase(args[0])) {
             return Bukkit.getOnlinePlayers().stream()
@@ -139,6 +146,12 @@ public final class SoulBlastCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && "give".equalsIgnoreCase(args[0])) {
             return filter(registry.all().stream().map(d -> d.id).collect(Collectors.toList()), args[2]);
+        }
+        if (args.length == 2 && "rollback".equalsIgnoreCase(args[0])) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT)))
+                    .collect(Collectors.toList());
         }
         return List.of();
     }

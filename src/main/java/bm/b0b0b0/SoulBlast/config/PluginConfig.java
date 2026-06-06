@@ -30,6 +30,8 @@ public class PluginConfig extends YamlSerializable {
 
     public PlayerCooldownSettings playerCooldown = new PlayerCooldownSettings();
 
+    public CoreProtectIntegrationSettings coreProtectIntegration = new CoreProtectIntegrationSettings();
+
     @Comment(@CommentValue("Переопределение взрывоустойчивости блоков"))
     public Map<String, BlockResistanceEntry> blockBlastResistance = new LinkedHashMap<>();
 

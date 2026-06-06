@@ -29,6 +29,13 @@
   default-auto-ignite: true
 fuse-recall:
   enabled: true
+core-protect-integration:
+  enabled: true
+  log-breaks: true
+  log-placements: true
+  log-liquid-clear: true
+  fallback-user: "#soulblast"
+  log-all-as-fallback-user: true
 fuse-misfire:
   enabled: true
   dud-disposal-seconds: 30

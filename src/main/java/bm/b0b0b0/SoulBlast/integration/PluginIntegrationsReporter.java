@@ -1,7 +1,9 @@
 package bm.b0b0b0.SoulBlast.integration;
 
+import bm.b0b0b0.SoulBlast.config.CoreProtectIntegrationSettings;
 import bm.b0b0b0.SoulBlast.config.EconomySettings;
 import bm.b0b0b0.SoulBlast.config.RegionProtectionSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.integration.worldguard.WorldGuardRegionBackend;
 import bm.b0b0b0.SoulBlast.message.SoulBlastConsole;
 import bm.b0b0b0.SoulBlast.service.economy.VaultEconomyBridge;
@@ -33,9 +35,35 @@ public final class PluginIntegrationsReporter {
             VaultEconomyBridge vault,
             SoulBlastConsole console
     ) {
+        report(plugin, regionProtection, regionBackend, economy, vault, null, null, console);
+    }
+
+    public static void report(
+            JavaPlugin plugin,
+            RegionProtectionSettings regionProtection,
+            RegionBackend regionBackend,
+            EconomySettings economy,
+            VaultEconomyBridge vault,
+            CoreProtectIntegrationSettings coreProtectSettings,
+            CoreProtectBridge coreProtect
+    ) {
+        report(plugin, regionProtection, regionBackend, economy, vault, coreProtectSettings, coreProtect, null);
+    }
+
+    public static void report(
+            JavaPlugin plugin,
+            RegionProtectionSettings regionProtection,
+            RegionBackend regionBackend,
+            EconomySettings economy,
+            VaultEconomyBridge vault,
+            CoreProtectIntegrationSettings coreProtectSettings,
+            CoreProtectBridge coreProtect,
+            SoulBlastConsole console
+    ) {
         RegionBackend backend = regionBackend == null ? DisabledRegionBackend.INSTANCE : regionBackend;
         reportWorldGuard(plugin, regionProtection, backend, console);
         reportVault(plugin, economy, vault, console);
+        reportCoreProtect(plugin, coreProtectSettings, coreProtect, console);
     }
 
     private static void reportWorldGuard(
@@ -65,6 +93,40 @@ public final class PluginIntegrationsReporter {
             return;
         }
         log(console, plugin, "WorldGuard установлен, но API недоступен — проверь версию", true);
+    }
+
+    private static void reportCoreProtect(
+            JavaPlugin plugin,
+            CoreProtectIntegrationSettings settings,
+            CoreProtectBridge bridge,
+            SoulBlastConsole console
+    ) {
+        if (settings == null || !settings.enabled) {
+            log(console, plugin, "CoreProtect в config выключен — лог взрывов не пишется", false);
+            return;
+        }
+        if (!isPluginActive(plugin, "CoreProtect")) {
+            log(console, plugin, "CoreProtect не установлен — rollback и лог недоступны", false);
+            return;
+        }
+        if (bridge != null && bridge.active()) {
+            log(
+                    console,
+                    plugin,
+                    "CoreProtect — лог взрывов и rollback (API v"
+                            + bridge.boundApiVersion()
+                            + ", user "
+                            + bridge.logUser()
+                            + ")",
+                    false,
+                    true
+            );
+            return;
+        }
+        String detail = bridge == null || bridge.bindIssue().isBlank()
+                ? "проверь версию (нужен 22+)"
+                : bridge.bindIssue();
+        log(console, plugin, "CoreProtect установлен, но API недоступен — " + detail, true);
     }
 
     private static void reportVault(

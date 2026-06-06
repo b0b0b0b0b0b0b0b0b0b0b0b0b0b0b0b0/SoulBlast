@@ -2,14 +2,22 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.ExplosionEffectsSettings;
 import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TNTPrimed;
 
 public final class ExplosionEntityEffectsService {
+
+    private final CoreProtectBridge coreProtect;
+
+    public ExplosionEntityEffectsService(CoreProtectBridge coreProtect) {
+        this.coreProtect = coreProtect;
+    }
 
     public void apply(ExplosionJob job) {
         ExplosionSettings settings = job.getDynamite().explosion;
@@ -44,8 +52,12 @@ public final class ExplosionEntityEffectsService {
         if (world == null) {
             return;
         }
-        if (world.getBlockAt(target.x(), target.y(), target.z()).getType() == Material.TNT) {
-            world.getBlockAt(target.x(), target.y(), target.z()).setType(Material.AIR, false);
+        Block tnt = world.getBlockAt(target.x(), target.y(), target.z());
+        if (tnt.getType() == Material.TNT) {
+            if (coreProtect != null) {
+                coreProtect.logBreak(job, tnt);
+            }
+            tnt.setType(Material.AIR, false);
         }
     }
 

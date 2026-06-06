@@ -50,6 +50,13 @@ public final class MessageService {
             case "reload-done" -> messages.reloadDone;
             case "ignite-denied" -> messages.igniteDenied;
             case "command-usage" -> messages.commandUsage;
+            case "coreprotect-missing" -> messages.coreprotectMissing;
+            case "coreprotect-rollback-started" -> messages.coreprotectRollbackStarted;
+            case "coreprotect-rollback-done" -> messages.coreprotectRollbackDone;
+            case "coreprotect-rollback-empty" -> messages.coreprotectRollbackEmpty;
+            case "coreprotect-rollback-failed" -> messages.coreprotectRollbackFailed;
+            case "coreprotect-rollback-invalid" -> messages.coreprotectRollbackInvalid;
+            case "coreprotect-rollback-center" -> messages.coreprotectRollbackCenter;
             case "goal-selected" -> messages.goalSelected;
             case "goal-cleared" -> messages.goalCleared;
             case "goal-not-selected" -> messages.goalNotSelected;

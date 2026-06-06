@@ -16,6 +16,7 @@ import bm.b0b0b0.SoulBlast.config.PluginConfig;
 import bm.b0b0b0.SoulBlast.config.YamlConfigLoader;
 import bm.b0b0b0.SoulBlast.integration.DeferredIntegrationsListener;
 import bm.b0b0b0.SoulBlast.integration.PluginIntegrationsReporter;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.config.ProtectionStonesIntegrationSettings;
 import bm.b0b0b0.SoulBlast.integration.worldguard.WorldGuardRegionBackend;
 import bm.b0b0b0.SoulBlast.integration.worldguard.WorldGuardSoulblastEventBridge;
@@ -49,12 +50,14 @@ import bm.b0b0b0.SoulBlast.service.DynamitePurchaseService;
 import bm.b0b0b0.SoulBlast.service.DynamiteVisualService;
 import bm.b0b0b0.SoulBlast.service.EntityExplosionDamageService;
 import bm.b0b0b0.SoulBlast.service.ExplosionEntityEffectsService;
+import bm.b0b0b0.SoulBlast.service.ExplosionFireSupport;
 import bm.b0b0b0.SoulBlast.service.FuseLightningService;
 import bm.b0b0b0.SoulBlast.service.TsarWarheadService;
 import bm.b0b0b0.SoulBlast.service.ObsidianInstantShatterService;
 import bm.b0b0b0.SoulBlast.service.ExplosionLiquidSampler;
 import bm.b0b0b0.SoulBlast.service.ExplosionQueueService;
 import bm.b0b0b0.SoulBlast.service.TsarExplosionGate;
+import bm.b0b0b0.SoulBlast.service.TsarGradualDrainService;
 import bm.b0b0b0.SoulBlast.service.ExplosionBlockInclusion;
 import bm.b0b0b0.SoulBlast.service.ExplosionDebugTrace;
 import bm.b0b0b0.SoulBlast.service.ExplosionRaySampler;
@@ -118,6 +121,7 @@ public final class SoulBlast extends JavaPlugin {
     private MenuIconFactory menuIconFactory;
     private MenuItemGuard menuItemGuard;
     private RegionProtectionService regionProtectionService;
+    private CoreProtectBridge coreProtectBridge;
     private RegionProtectionMessenger regionProtectionMessenger;
     private DynamiteCooldownService dynamiteCooldownService;
     private DynamiteCooldownMessenger dynamiteCooldownMessenger;
@@ -261,6 +265,10 @@ public final class SoulBlast extends JavaPlugin {
                 "messages.yml"
         );
         messageService = new MessageService(messagesConfig);
+        if (coreProtectBridge == null) {
+            coreProtectBridge = new CoreProtectBridge(this);
+        }
+        coreProtectBridge.reload(pluginConfig.coreProtectIntegration);
         if (psModule != null) {
             psModule.reload();
             psModule.enable();
@@ -269,6 +277,9 @@ public final class SoulBlast extends JavaPlugin {
         boolean quietStartup = psModule == null || psModule.silentStartup();
         if (decayModule != null) {
             decayModule.reload(quietStartup);
+            if (decayModule.explosionBridge() != null) {
+                decayModule.explosionBridge().bindCoreProtect(coreProtectBridge);
+            }
         }
         if (logIntegrations && !quietStartup && startupBanner == null) {
             getLogger().info("[Интеграции] Подключение WorldGuard / ProtectionStones после полного старта сервера");
@@ -284,27 +295,32 @@ public final class SoulBlast extends JavaPlugin {
         initEconomy();
         EntityExplosionDamageService entityExplosionDamageService = new EntityExplosionDamageService();
         entityExplosionDamageService.reload(pluginConfig);
-        ExplosionEntityEffectsService explosionEntityEffectsService = new ExplosionEntityEffectsService();
+        ExplosionEntityEffectsService explosionEntityEffectsService = new ExplosionEntityEffectsService(coreProtectBridge);
         ExplosionBlockInclusion blockInclusion = new ExplosionBlockInclusion(blastResistanceService);
         ExplosionRaySampler raySampler = new ExplosionRaySampler(blastResistanceService, blockInclusion);
         ExplosionWaveSampler waveSampler = new ExplosionWaveSampler(blockInclusion);
         ExplosionVolumeSampler volumeSampler = new ExplosionVolumeSampler();
-        ExplosionLiquidSampler liquidSampler = new ExplosionLiquidSampler();
         CraterFillPlanner craterFillPlanner = new CraterFillPlanner();
         DecayExplosionBridge decayBridge = decayModule == null ? null : decayModule.explosionBridge();
+        ExplosionLiquidSampler liquidSampler = new ExplosionLiquidSampler(coreProtectBridge);
+        TsarGradualDrainService tsarGradualDrain = new TsarGradualDrainService(coreProtectBridge);
         ObsidianInstantShatterService obsidianShatter = new ObsidianInstantShatterService(
                 blastResistanceService,
                 decayModule == null ? null : decayModule.damageResolver(),
-                decayBridge
+                decayBridge,
+                coreProtectBridge
         );
         PsExplosionBridge psExplosionBridge = resolvePsExplosionBridge();
+        ExplosionFireSupport explosionFireSupport = new ExplosionFireSupport(coreProtectBridge);
         BlockExplosionApplier blockApplier = new BlockExplosionApplier(
                 blastResistanceService,
                 explosionEntityEffectsService,
                 regionProtectionService,
                 decayBridge,
                 obsidianShatter,
-                psExplosionBridge
+                psExplosionBridge,
+                coreProtectBridge,
+                explosionFireSupport
         );
         if (tsarExplosionGate == null) {
             tsarExplosionGate = new TsarExplosionGate(this);
@@ -328,7 +344,9 @@ public final class SoulBlast extends JavaPlugin {
                 explosionEntityEffectsService,
                 new PostExplosionActionRunner(),
                 tsarExplosionGate,
-                explosionDebugTrace
+                explosionDebugTrace,
+                explosionFireSupport,
+                tsarGradualDrain
         );
         explosionQueueService.reload(pluginConfig);
         dynamiteVisualService = new DynamiteVisualService(this);
@@ -391,7 +409,9 @@ public final class SoulBlast extends JavaPlugin {
                     pluginConfig.regionProtection,
                     regionProtectionService == null ? DisabledRegionBackend.INSTANCE : regionProtectionService.regionBackend(),
                     pluginConfig.economy,
-                    vaultEconomyBridge
+                    vaultEconomyBridge,
+                    pluginConfig.coreProtectIntegration,
+                    coreProtectBridge
             );
         }
         startTasks();
@@ -614,6 +634,16 @@ public final class SoulBlast extends JavaPlugin {
 
     public DecayModule getDecayModule() {
         return decayModule;
+    }
+
+    public CoreProtectBridge getCoreProtectBridge() {
+        if (coreProtectBridge == null) {
+            coreProtectBridge = new CoreProtectBridge(this);
+            if (pluginConfig != null) {
+                coreProtectBridge.reload(pluginConfig.coreProtectIntegration);
+            }
+        }
+        return coreProtectBridge;
     }
 
     public PluginConfig getPluginConfig() {

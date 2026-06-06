@@ -33,11 +33,11 @@ public final class ExplosionQueueService {
     private GeneralSettings general = new GeneralSettings();
     private ExplosionLimits limits = ExplosionLimits.from(general);
     private final ExplosionChunkContext chunkContext = new ExplosionChunkContext();
-    private final ExplosionFireSupport fireSupport = new ExplosionFireSupport();
+    private final ExplosionFireSupport fireSupport;
     private final ExplosionChunkScope chunkScope = new ExplosionChunkScope();
     private final TsarExplosionGate tsarGate;
     private final ExplosionDebugTrace explosionDebug;
-    private final TsarGradualDrainService tsarGradualDrain = new TsarGradualDrainService();
+    private final TsarGradualDrainService tsarGradualDrain;
     private final TsarDecoyBurstService tsarDecoyBursts;
     private final HellscapeLightningService hellscapeLightning = new HellscapeLightningService();
     private final TsarGradualMaskService tsarGradualMask;
@@ -55,7 +55,9 @@ public final class ExplosionQueueService {
             ExplosionEntityEffectsService entityEffectsService,
             PostExplosionActionRunner postActionRunner,
             TsarExplosionGate tsarGate,
-            ExplosionDebugTrace explosionDebug
+            ExplosionDebugTrace explosionDebug,
+            ExplosionFireSupport fireSupport,
+            TsarGradualDrainService tsarGradualDrain
     ) {
         this.plugin = plugin;
         this.raySampler = raySampler;
@@ -64,6 +66,8 @@ public final class ExplosionQueueService {
         this.liquidSampler = liquidSampler;
         this.craterFillPlanner = craterFillPlanner;
         this.blockApplier = blockApplier;
+        this.fireSupport = fireSupport;
+        this.tsarGradualDrain = tsarGradualDrain;
         this.entityDamageService = entityDamageService;
         this.entityEffectsService = entityEffectsService;
         this.postActionRunner = postActionRunner;
@@ -94,10 +98,10 @@ public final class ExplosionQueueService {
         if (ExplosionLiquidSampler.drainsLiquids(dynamite)) {
             if (TsarBombRules.isTsar(dynamite)) {
                 int innerDrain = Math.max(0, general.griefLastPyreInnerDrainRadius);
-                liquidSampler.clearInnerLiquidsImmediately(center, dynamite, general, innerDrain);
+                liquidSampler.clearInnerLiquidsImmediately(center, dynamite, general, innerDrain, source);
                 ExplosionPresentationEffects.playChargeBurst(center, dynamite);
             } else {
-                liquidSampler.clearLiquidsImmediately(center, dynamite, limits, general);
+                liquidSampler.clearLiquidsImmediately(center, dynamite, limits, general, source);
                 if (DrainVortexEffectService.usesDrainVortex(dynamite)) {
                     DrainVortexEffectService.start(plugin, center, dynamite);
                 } else {
@@ -569,10 +573,10 @@ public final class ExplosionQueueService {
             applyPresentation(job);
         }
         if (TsarBombRules.isTsar(dynamite)) {
-            fireSupport.igniteHellscape(center, dynamite);
+            fireSupport.igniteHellscape(job);
         }
         if (dynamite.explosion.createFire) {
-            fireSupport.removeUnsupportedFire(center, dynamite.explosion.radius);
+            fireSupport.removeUnsupportedFire(job);
         }
         if (!TsarBombRules.isTsar(dynamite)) {
             postActionRunner.scheduleActions(plugin, center, dynamite.explosion.postActions);

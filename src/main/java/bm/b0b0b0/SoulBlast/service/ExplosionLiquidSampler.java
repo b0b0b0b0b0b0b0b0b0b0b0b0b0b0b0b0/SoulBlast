@@ -5,6 +5,7 @@ import bm.b0b0b0.SoulBlast.config.ExplosionEffectsSettings;
 import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
 import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
 import bm.b0b0b0.SoulBlast.config.GeneralSettings;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.model.ExplosionBlockAction;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.util.BlockCoordPacker;
@@ -13,16 +14,24 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 
 import java.util.List;
 
 public final class ExplosionLiquidSampler {
 
+    private final CoreProtectBridge coreProtect;
+
+    public ExplosionLiquidSampler(CoreProtectBridge coreProtect) {
+        this.coreProtect = coreProtect;
+    }
+
     public int clearInnerLiquidsImmediately(
             Location center,
             DynamiteDefinition dynamite,
             GeneralSettings general,
-            int innerRingRadius
+            int innerRingRadius,
+            Entity source
     ) {
         ExplosionEffectsSettings effects = dynamite.explosion.effects;
         if (!effects.removeWater && !effects.removeLava) {
@@ -33,14 +42,15 @@ public final class ExplosionLiquidSampler {
             return 0;
         }
         float radius = effects.liquidRadius > 0 ? effects.liquidRadius : dynamite.explosion.radius;
-        return clearHorizontalRings(world, center, radius, effects, general.sampleOnlyLoadedChunks, 0, innerRingRadius);
+        return clearHorizontalRings(world, center, radius, effects, general.sampleOnlyLoadedChunks, 0, innerRingRadius, source);
     }
 
     public int clearLiquidsImmediately(
             Location center,
             DynamiteDefinition dynamite,
             ExplosionLimits limits,
-            GeneralSettings general
+            GeneralSettings general,
+            Entity source
     ) {
         ExplosionEffectsSettings effects = dynamite.explosion.effects;
         if (!effects.removeWater && !effects.removeLava) {
@@ -52,7 +62,7 @@ public final class ExplosionLiquidSampler {
         }
         float radius = effects.liquidRadius > 0 ? effects.liquidRadius : dynamite.explosion.radius;
         int maxBlocks = resolveLiquidClearBudget(radius, effects);
-        return clearSphere(world, center, radius, effects, general.sampleOnlyLoadedChunks, maxBlocks);
+        return clearSphere(world, center, radius, effects, general.sampleOnlyLoadedChunks, maxBlocks, source);
     }
 
     public void sampleIntoJob(ExplosionJob job, ExplosionLimits limits, GeneralSettings general) {
@@ -79,7 +89,8 @@ public final class ExplosionLiquidSampler {
             ExplosionEffectsSettings effects,
             boolean onlyLoaded,
             int fromRing,
-            int toRing
+            int toRing,
+            Entity source
     ) {
         int cx = center.getBlockX();
         int cy = center.getBlockY();
@@ -110,7 +121,7 @@ public final class ExplosionLiquidSampler {
                         }
                         Block block = world.getBlockAt(x, y, z);
                         if (shouldClear(block.getType(), effects)) {
-                            block.setType(Material.AIR, false);
+                            clearLiquidBlock(block, source);
                             cleared++;
                         }
                     }
@@ -126,7 +137,8 @@ public final class ExplosionLiquidSampler {
             float radius,
             ExplosionEffectsSettings effects,
             boolean onlyLoaded,
-            int maxBlocks
+            int maxBlocks,
+            Entity source
     ) {
         int intRadius = (int) Math.ceil(radius);
         int cx = center.getBlockX();
@@ -158,12 +170,19 @@ public final class ExplosionLiquidSampler {
             for (ExplosionSphereShells.ShellCell cell : cells) {
                 Block block = world.getBlockAt(cell.x(), cell.y(), cell.z());
                 if (shouldClear(block.getType(), effects)) {
-                    block.setType(Material.AIR, false);
+                    clearLiquidBlock(block, source);
                     cleared++;
                 }
             }
         }
         return cleared;
+    }
+
+    private void clearLiquidBlock(Block block, Entity source) {
+        if (coreProtect != null) {
+            coreProtect.logLiquidClear(source, block);
+        }
+        block.setType(Material.AIR, false);
     }
 
     private void collectIntoJob(

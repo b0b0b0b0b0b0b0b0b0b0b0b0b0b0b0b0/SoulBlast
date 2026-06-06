@@ -205,7 +205,8 @@ public final class PsModule {
                 lifecycleService,
                 blockPersistence,
                 debugLog,
-                durabilityTrace
+                durabilityTrace,
+                plugin.getCoreProtectBridge()
         );
         scheduleRegionRestore(debugLog);
         witherBreakService = new PsWitherBreakService(

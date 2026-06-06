@@ -190,7 +190,7 @@ public final class DynamitePresets {
         applyTsarEffects(d);
         applyApocalypseEffects(d);
         applyTsarWarheads(d);
-        applyPurchase(d, PurchaseType.VANILLA_TNT, 16);
+        applyPurchase(d, PurchaseType.VANILLA_TNT, 1000);
         d.purchase.useCooldownSeconds = 30;
         return d;
     }
