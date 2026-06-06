@@ -45,12 +45,6 @@ public final class RegionProtectionService {
         if (!settings.enabled || !worldAllowed(blockLocation.getWorld())) {
             return true;
         }
-        if (hasBypass(player)) {
-            return true;
-        }
-        if (permitsPsRaid(blockLocation, player)) {
-            return true;
-        }
         if (!backend.available()) {
             return !settings.requireWorldGuard;
         }
@@ -72,21 +66,22 @@ public final class RegionProtectionService {
         int y = blockLocation.getBlockY();
         int z = blockLocation.getBlockZ();
         for (RegionVolume volume : volumes) {
-            if (volume.contains(x, y, z)) {
+            if (!volume.contains(x, y, z)) {
+                continue;
+            }
+            if (isStrictListedRegion(volume.name())) {
                 return false;
             }
+            if (hasBypass(player) || permitsPsRaid(blockLocation, player)) {
+                continue;
+            }
+            return false;
         }
         return true;
     }
 
     public RegionCheckResult evaluate(Location location, DynamiteDefinition dynamite, Player player) {
         if (!settings.enabled || !worldAllowed(location.getWorld())) {
-            return RegionCheckResult.permit();
-        }
-        if (hasBypass(player)) {
-            return RegionCheckResult.permit();
-        }
-        if (permitsPsRaid(location, player)) {
             return RegionCheckResult.permit();
         }
         if (!backend.available()) {
@@ -115,15 +110,32 @@ public final class RegionProtectionService {
         int z = location.getBlockZ();
         for (RegionVolume volume : volumes) {
             if (volume.contains(x, y, z)) {
-                return RegionCheckResult.denied("inside", volume.name());
+                if (isStrictListedRegion(volume.name())) {
+                    return RegionCheckResult.denied("inside", volume.name());
+                }
+                if (!hasBypass(player) && !permitsPsRaid(location, player)) {
+                    return RegionCheckResult.denied("inside", volume.name());
+                }
+                continue;
             }
             double distance = volume.distanceToBoundary(x, y, z);
             if (distance < margin) {
-                return RegionCheckResult.denied("buffer", volume.name());
+                if (isStrictListedRegion(volume.name())) {
+                    return RegionCheckResult.denied("buffer", volume.name());
+                }
+                if (!hasBypass(player) && !permitsPsRaid(location, player)) {
+                    return RegionCheckResult.denied("buffer", volume.name());
+                }
             }
         }
         if (settings.checkExplosionFootprint && explosionTouchesProtected(location, dynamite, volumes)) {
-            return RegionCheckResult.denied("blast", nearestTouchingRegion(location, dynamite, volumes));
+            String regionName = nearestTouchingRegion(location, dynamite, volumes);
+            if (isStrictListedRegion(regionName)) {
+                return RegionCheckResult.denied("blast", regionName);
+            }
+            if (!hasBypass(player) && !permitsPsRaid(location, player)) {
+                return RegionCheckResult.denied("blast", regionName);
+            }
         }
         return RegionCheckResult.permit();
     }
@@ -204,8 +216,52 @@ public final class RegionProtectionService {
         return player != null && player.hasPermission(settings.bypassPermission);
     }
 
+    private boolean isStrictListedRegion(String regionName) {
+        if (!settings.strictListedRegions || regionName == null || regionName.isBlank()) {
+            return false;
+        }
+        String lowered = regionName.toLowerCase(Locale.ROOT);
+        for (String listed : settings.regionNames) {
+            if (listed != null && listed.equalsIgnoreCase(lowered)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean permitsPsRaid(Location location, Player player) {
-        return psRaidBypass != null && psRaidBypass.permits(location, player);
+        if (psRaidBypass == null) {
+            return false;
+        }
+        if (settings.strictListedRegions && touchesStrictListedRegion(location, player)) {
+            return false;
+        }
+        return psRaidBypass.permits(location, player);
+    }
+
+    private boolean touchesStrictListedRegion(Location location, Player player) {
+        if (!backend.available() || location == null || location.getWorld() == null) {
+            return false;
+        }
+        try {
+            List<RegionVolume> volumes = backend.dynamitePlacementVolumes(
+                    location.getWorld(),
+                    location,
+                    player,
+                    settings
+            );
+            int x = location.getBlockX();
+            int y = location.getBlockY();
+            int z = location.getBlockZ();
+            for (RegionVolume volume : volumes) {
+                if (volume.contains(x, y, z) && isStrictListedRegion(volume.name())) {
+                    return true;
+                }
+            }
+        } catch (RuntimeException exception) {
+            return false;
+        }
+        return false;
     }
 
     public record RegionCheckResult(boolean permitted, String reason, String regionName) {

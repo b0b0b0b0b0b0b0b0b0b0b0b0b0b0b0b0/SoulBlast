@@ -52,7 +52,7 @@ permissions:
   soulblast.decay.repair:
     default: true
   soulblast.region.bypass:
-    default: op
+    default: false
   soulblast.ps.hologram:
     default: true
   soulblast.ps.hologram.admin:

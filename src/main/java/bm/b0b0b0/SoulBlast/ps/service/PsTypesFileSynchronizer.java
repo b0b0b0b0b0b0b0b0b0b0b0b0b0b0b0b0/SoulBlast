@@ -41,12 +41,6 @@ public final class PsTypesFileSynchronizer {
             typesDirectory.saveType(block.alias(), template);
             added++;
         }
-        if (added > 0) {
-            plugin.getLogger().info(
-                    "[ProtectionStones+] В ps/types/ записано новых типов: " + added
-                            + " — отредактируй голограмму, прочность и динамиты в файлах"
-            );
-        }
         return added;
     }
 

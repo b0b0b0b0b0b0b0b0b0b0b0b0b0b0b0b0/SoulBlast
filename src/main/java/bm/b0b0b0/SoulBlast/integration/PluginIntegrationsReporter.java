@@ -113,9 +113,9 @@ public final class PluginIntegrationsReporter {
             log(
                     console,
                     plugin,
-                    "CoreProtect — лог взрывов и rollback (API v"
+                    "CoreProtect (API v"
                             + bridge.boundApiVersion()
-                            + ", user "
+                            + ") — лог взрывов и rollback (user "
                             + bridge.logUser()
                             + ")",
                     false,

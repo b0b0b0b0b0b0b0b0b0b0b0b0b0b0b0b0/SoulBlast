@@ -68,6 +68,7 @@ region-protection:
   region-names:
     - spawn
     - __spawn__
+  strict-listed-regions: true
   exempt-region-names: []
   protect-build-deny-regions: true
   protect-flag-deny-regions: true

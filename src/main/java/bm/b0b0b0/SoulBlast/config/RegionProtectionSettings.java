@@ -20,6 +20,9 @@ public class RegionProtectionSettings {
     @Comment(@CommentValue("Имена регионов WG (spawn, hub и т.д.), без учёта регистра"))
     public List<String> regionNames = defaultRegionNames();
 
+    @Comment(@CommentValue("region-names: полный запрет — soulblast.region.bypass и PS-рейд не помогают"))
+    public boolean strictListedRegions = true;
+
     @Comment(@CommentValue("Регионы из списка не защищать (даже если совпало имя)"))
     public List<String> exemptRegionNames = new ArrayList<>();
 

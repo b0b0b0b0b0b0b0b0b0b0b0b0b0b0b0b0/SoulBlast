@@ -282,11 +282,11 @@ public final class PsModule {
             }
         }
         console.info(
-                "Регионов PS на сервере: \u001B[90m"
+                "Регионов PS: \u001B[90m"
                         + psRegionCount
-                        + "\u001B[0m | записей SoulBlast (ps/regions/): \u001B[90m"
+                        + "\u001B[0m | Записей SB: \u001B[90m"
                         + trackedRegions
-                        + "\u001B[0m | типов ps/types/: \u001B[90m"
+                        + "\u001B[0m | Типов PS: \u001B[90m"
                         + configuredTypeCount
                         + "\u001B[0m"
         );
