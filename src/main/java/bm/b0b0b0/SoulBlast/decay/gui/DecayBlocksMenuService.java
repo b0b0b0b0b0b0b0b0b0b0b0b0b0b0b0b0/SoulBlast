@@ -36,7 +36,7 @@ public final class DecayBlocksMenuService {
     public void open(Player player, int page, DecayBlocksSortMode sortMode) {
         List<DecayBlockRegistry.DecayBlockEntry> entries = sortedEntries(sortMode);
         int maxPage = Math.max(0, (entries.size() - 1) / PAGE_SIZE);
-        int safePage = Math.max(0, Math.min(page, maxPage));
+        int safePage = Math.clamp(page, 0, maxPage);
         DecayBlocksHolder holder = new DecayBlocksHolder(safePage, sortMode);
         Inventory inventory = Bukkit.createInventory(
                 holder,

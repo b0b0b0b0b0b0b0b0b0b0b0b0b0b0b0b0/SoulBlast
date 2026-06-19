@@ -192,10 +192,8 @@ public final class ExplosionQueueService {
         if (multiplier <= 1.001f) {
             return baseBudget;
         }
-        return Math.min(
-                limits.maxBlocksPerExplosionTick() * 2,
-                Math.max(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier))
-        );
+        return Math.clamp(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier),
+                limits.maxBlocksPerExplosionTick() * 2);
     }
 
     private int resolveTsarDrainBudget(int budget) {
@@ -204,10 +202,8 @@ public final class ExplosionQueueService {
         if (floor <= 0) {
             return share;
         }
-        return Math.min(
-                limits.maxBlocksPerExplosionTick() * 2,
-                Math.max(share, floor)
-        );
+        return Math.clamp(share, floor,
+                limits.maxBlocksPerExplosionTick() * 2);
     }
 
     private void beginBlockSampling(ExplosionJob job) {

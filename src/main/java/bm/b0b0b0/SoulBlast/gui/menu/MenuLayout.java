@@ -16,7 +16,7 @@ public final class MenuLayout {
 
     public MenuLayout(MenuFileConfig config) {
         List<String> rows = config.options.layout;
-        int rowCount = Math.min(6, Math.max(1, rows.size()));
+        int rowCount = Math.clamp(rows.size(), 1, 6);
         this.size = rowCount * 9;
         this.symbolBySlot = new LinkedHashMap<>();
         this.dynamiteSlots = new ArrayList<>();

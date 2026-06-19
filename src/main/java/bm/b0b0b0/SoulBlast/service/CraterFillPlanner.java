@@ -203,10 +203,10 @@ public final class CraterFillPlanner {
             double outerRadius = Math.sqrt(outerSq);
             double span = Math.max(0.5, outerRadius - innerRadius);
             double rimFactor = (Math.sqrt(distSq) - innerRadius) / span;
-            chance += 0.08 * Math.min(1.0, Math.max(0.0, rimFactor));
+            chance += 0.08 * Math.clamp(rimFactor, 0.0, 1.0);
         }
         chance += (scatterRandom.nextDouble() - 0.5) * 0.22;
-        chance = Math.min(0.72, Math.max(0.14, chance));
+        chance = Math.clamp(chance, 0.14, 0.72);
         return scatterRandom.nextDouble() < chance;
     }
 
@@ -437,7 +437,7 @@ public final class CraterFillPlanner {
     private static int clampY(World world, int y) {
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        return Math.max(minY, Math.min(maxY, y));
+        return Math.clamp(maxY, minY, y);
     }
 
     private record FillColumn(int dx, int dz, double distSq) {

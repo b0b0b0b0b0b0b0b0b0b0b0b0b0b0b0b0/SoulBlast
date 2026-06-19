@@ -17,7 +17,7 @@ public final class DecayDamageResolver {
     public void reload(DecayDamageSourcesFileConfig config, DecayGeneralSettings general) {
         this.general = general;
         sources = Map.copyOf(config.types);
-        maxDamagePerHit = Math.max(0.06f, Math.min(0.22f, general.maxDamagePerHit));
+        maxDamagePerHit = Math.clamp(general.maxDamagePerHit, 0.06f, 0.22f);
     }
 
     public float rollHit(String dynamiteId, float resistance, Location explosionCenter, Block block, float explosionRadius) {
@@ -49,7 +49,7 @@ public final class DecayDamageResolver {
         double dz = blockZ - explosionCenter.getZ();
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         double normalized = Math.min(1.0, distance / explosionRadius);
-        float minAtEdge = Math.max(0.0f, Math.min(1.0f, general.explosionMinDamageMultiplierAtEdge));
+        float minAtEdge = Math.clamp(general.explosionMinDamageMultiplierAtEdge, 0.0f, 1.0f);
         float span = 1.0f - minAtEdge;
         float proximity = falloffProximity(normalized);
         return minAtEdge + span * proximity;

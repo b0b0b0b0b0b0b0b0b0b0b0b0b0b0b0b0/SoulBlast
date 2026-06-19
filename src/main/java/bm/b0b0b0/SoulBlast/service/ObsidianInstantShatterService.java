@@ -96,9 +96,9 @@ public final class ObsidianInstantShatterService {
 
     private static float requiredProximity(Material material, ExplosionAlgorithmSettings algorithm) {
         if (material == Material.CRYING_OBSIDIAN) {
-            return Math.max(0.0f, Math.min(1.0f, algorithm.obsidianShatterCryingProximity));
+            return Math.clamp(algorithm.obsidianShatterCryingProximity, 0.0f, 1.0f);
         }
-        return Math.max(0.0f, Math.min(1.0f, algorithm.obsidianShatterObsidianProximity));
+        return Math.clamp(algorithm.obsidianShatterObsidianProximity, 0.0f, 1.0f);
     }
 
     private static void applyBreakRule(

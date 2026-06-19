@@ -64,7 +64,7 @@ public final class FuseMisfireResolver {
     }
 
     private static double clampChance(double value) {
-        return Math.max(0.0, Math.min(1.0, value));
+        return Math.clamp(value, 0.0, 1.0);
     }
 
     public enum ActivateOutcome {

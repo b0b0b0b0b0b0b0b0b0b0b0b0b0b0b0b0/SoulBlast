@@ -26,7 +26,7 @@ public final class DrainVortexEffectService {
         World world = center.getWorld();
         float radius = resolveRadius(dynamite);
         float intensity = Math.max(0.5f, effects.drainVortexIntensity * effects.presentation.intensity);
-        int totalTicks = Math.max(12, Math.min(64, effects.drainVortexTicks));
+        int totalTicks = Math.clamp(effects.drainVortexTicks, 12, 64);
         playOpening(world, center, radius, intensity);
         for (int tick = 0; tick < totalTicks; tick++) {
             int frame = tick;
@@ -128,7 +128,7 @@ public final class DrainVortexEffectService {
     ) {
         Location core = center.clone().add(0.5, 0.5, 0.5);
         play(world, center, "block.bubble_column.whirlpool_ambient", 1.35f * intensity, 0.45f);
-        play(world, center, "block.conduit.deactivate", 1.0f * intensity, 0.65f);
+        play(world, center, "block.conduit.deactivate", intensity, 0.65f);
         play(world, center, "entity.enderman.teleport", 0.75f * intensity, 0.55f);
         play(world, center, "entity.illusioner.mirror_move", 0.5f * intensity, 1.2f);
         world.spawnParticle(Particle.SONIC_BOOM, core, 1, 0.0, 0.0, 0.0, 0.0);
