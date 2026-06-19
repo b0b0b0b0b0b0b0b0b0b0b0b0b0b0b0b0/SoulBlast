@@ -148,16 +148,13 @@ public final class WorldGuardSoulblastEventBridge {
                 return false;
             }
         }
-        if (original instanceof PlayerInteractEvent interact) {
-            return resolveInteractSoulblast(interact);
-        }
-        if (original instanceof BlockIgniteEvent ignite) {
-            return resolvePlacedSoulblast(ignite.getBlock());
-        }
-        if (original instanceof EntitySpawnEvent spawn && spawn.getEntity() instanceof TNTPrimed primed) {
-            return resolvePrimedSoulblast(primed);
-        }
-        return false;
+        return switch (original) {
+            case PlayerInteractEvent interact -> resolveInteractSoulblast(interact);
+            case BlockIgniteEvent ignite -> resolvePlacedSoulblast(ignite.getBlock());
+            case EntitySpawnEvent spawn when spawn.getEntity() instanceof TNTPrimed primed ->
+                    resolvePrimedSoulblast(primed);
+            default -> false;
+        };
     }
 
     private boolean resolveInteractSoulblast(PlayerInteractEvent event) {

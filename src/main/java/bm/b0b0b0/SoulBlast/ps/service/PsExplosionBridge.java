@@ -463,17 +463,21 @@ public final class PsExplosionBridge {
     }
 
     private static Integer parseDamageValue(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        if (raw instanceof String text) {
-            try {
-                return Integer.parseInt(text.trim());
-            } catch (NumberFormatException exception) {
+        switch (raw) {
+            case null -> {
                 return null;
+            }
+            case Number number -> {
+                return number.intValue();
+            }
+            case String text -> {
+                try {
+                    return Integer.parseInt(text.trim());
+                } catch (NumberFormatException exception) {
+                    return null;
+                }
+            }
+            default -> {
             }
         }
         return null;
