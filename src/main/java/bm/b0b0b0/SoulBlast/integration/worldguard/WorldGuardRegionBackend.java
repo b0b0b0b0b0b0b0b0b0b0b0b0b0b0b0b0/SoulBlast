@@ -419,9 +419,7 @@ public final class WorldGuardRegionBackend implements RegionBackend {
 
     private static void appendRegions(List<Object> target, Object source) {
         if (source instanceof Collection<?> collection) {
-            for (Object region : collection) {
-                target.add(region);
-            }
+            target.addAll(collection);
             return;
         }
         if (source instanceof Iterable<?> iterable) {

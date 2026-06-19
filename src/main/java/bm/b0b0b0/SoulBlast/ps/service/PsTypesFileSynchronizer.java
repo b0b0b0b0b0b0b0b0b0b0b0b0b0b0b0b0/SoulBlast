@@ -71,7 +71,7 @@ public final class PsTypesFileSynchronizer {
             return false;
         }
         for (PsConfiguredBlockInfo block : bridge.listConfiguredBlocks()) {
-            if (material.equals(block.material()) && !key.equals(block.alias())) {
+            if (material == block.material() && !key.equals(block.alias())) {
                 return true;
             }
         }

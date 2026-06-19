@@ -199,7 +199,7 @@ public final class ExplosionQueueService {
     private int resolveTsarDrainBudget(int budget) {
         int share = Math.max(1, budget * 9 / 20);
         int floor = Math.max(0, general.griefLastPyreDrainBlocksPerTick);
-        if (floor <= 0) {
+        if (floor == 0) {
             return share;
         }
         return Math.clamp(share, floor,

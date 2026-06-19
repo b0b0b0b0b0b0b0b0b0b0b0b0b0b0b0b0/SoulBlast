@@ -145,7 +145,7 @@ public final class PsRegionAllowanceListener implements Listener {
     }
 
     private void uncancelIfProtectedRegion(Cancellable event, org.bukkit.Location location) {
-        if (!bridge.snapshotAt(location).isPresent()) {
+        if (bridge.snapshotAt(location).isEmpty()) {
             return;
         }
         event.setCancelled(false);

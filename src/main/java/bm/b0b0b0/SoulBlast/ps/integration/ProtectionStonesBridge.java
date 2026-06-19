@@ -264,7 +264,7 @@ public final class ProtectionStonesBridge {
             if (ownerId == null) {
                 return true;
             }
-            return placerId == null || !ownerId.equals(placerId);
+            return !ownerId.equals(placerId);
         } catch (ReflectiveOperationException exception) {
             return false;
         }
@@ -353,7 +353,7 @@ public final class ProtectionStonesBridge {
         Material material = materialFromName(raw);
         if (material != null) {
             for (PsConfiguredBlockInfo block : listConfiguredBlocks()) {
-                if (material.equals(block.material())) {
+                if (material == block.material()) {
                     return block.alias();
                 }
             }

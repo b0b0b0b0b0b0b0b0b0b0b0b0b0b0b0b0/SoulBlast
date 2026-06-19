@@ -39,9 +39,7 @@ public final class DynamiteCooldownService {
     public void reload(PlayerCooldownSettings settings) {
         this.settings = settings == null ? new PlayerCooldownSettings() : settings;
         List<PlayerCooldownTier> tiers = new ArrayList<>();
-        for (PlayerCooldownTier tier : this.settings.tiers) {
-            tiers.add(tier);
-        }
+        tiers.addAll(this.settings.tiers);
         tiers.sort((a, b) -> Float.compare(b.minRadius, a.minRadius));
         this.sortedTiers = List.copyOf(tiers);
     }
