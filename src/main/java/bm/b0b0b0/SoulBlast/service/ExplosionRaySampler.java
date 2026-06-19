@@ -1,9 +1,8 @@
 package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
-import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
 import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
-import bm.b0b0b0.SoulBlast.config.GeneralSettings;
+import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.model.ExplosionRaySamplingProgress;
 import bm.b0b0b0.SoulBlast.util.BlockCoordPacker;

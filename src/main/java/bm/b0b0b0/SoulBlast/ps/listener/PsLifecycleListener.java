@@ -1,8 +1,8 @@
 package bm.b0b0b0.SoulBlast.ps.listener;
 
 import bm.b0b0b0.SoulBlast.ps.config.PsSettings;
-import bm.b0b0b0.SoulBlast.ps.integration.PsRegionSnapshot;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.PsRegionSnapshot;
 import bm.b0b0b0.SoulBlast.ps.service.PsBlockAliasResolver;
 import bm.b0b0b0.SoulBlast.ps.service.PsDebugLog;
 import bm.b0b0b0.SoulBlast.ps.service.PsLifecycleService;

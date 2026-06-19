@@ -2,8 +2,8 @@ package bm.b0b0b0.SoulBlast.ps.service;
 
 import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
 import bm.b0b0b0.SoulBlast.ps.config.PsTypeCatalog;
-import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 
 import java.util.LinkedHashMap;
 import java.util.List;

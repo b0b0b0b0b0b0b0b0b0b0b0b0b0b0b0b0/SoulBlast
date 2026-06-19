@@ -2,8 +2,8 @@ package bm.b0b0b0.SoulBlast.ps.service;
 
 import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
 import bm.b0b0b0.SoulBlast.ps.config.PsTypeCatalog;
-import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.repository.PsTypesDirectory;
 import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;

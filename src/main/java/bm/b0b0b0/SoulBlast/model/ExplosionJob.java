@@ -3,11 +3,10 @@ package bm.b0b0b0.SoulBlast.model;
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.service.ExplosionCenter;
 import bm.b0b0b0.SoulBlast.util.BlockCoordPacker;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
-
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayDeque;
 

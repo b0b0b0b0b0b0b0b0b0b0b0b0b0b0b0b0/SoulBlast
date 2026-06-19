@@ -10,7 +10,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 
 public final class HellscapeCenterMedallionService {
 

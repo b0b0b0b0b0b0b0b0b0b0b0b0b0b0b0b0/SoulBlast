@@ -3,13 +3,7 @@ package bm.b0b0b0.SoulBlast.service;
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.config.ExplosionEffectsSettings;
 import bm.b0b0b0.SoulBlast.util.ColorUtil;
-import org.bukkit.Color;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Registry;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Optional;

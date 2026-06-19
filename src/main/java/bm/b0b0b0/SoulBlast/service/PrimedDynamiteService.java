@@ -10,22 +10,14 @@ import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
 import bm.b0b0b0.SoulBlast.util.PluginKeys;
 import bm.b0b0b0.SoulBlast.util.TextParser;
 import bm.b0b0b0.SoulBlast.util.TextUtil;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.TNTPrimed;
-import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.*;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class PrimedDynamiteService {

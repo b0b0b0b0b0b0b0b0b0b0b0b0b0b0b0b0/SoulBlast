@@ -5,11 +5,9 @@ import bm.b0b0b0.SoulBlast.ps.config.PsBlocksFileConfig;
 import bm.b0b0b0.SoulBlast.ps.config.PsConfigLoader;
 import bm.b0b0b0.SoulBlast.ps.model.PsBlockKey;
 import bm.b0b0b0.SoulBlast.ps.model.PsBlockState;
-import bm.b0b0b0.SoulBlast.ps.model.PsBlockState;
 import bm.b0b0b0.SoulBlast.ps.service.PsRegionId;
 import bm.b0b0b0.SoulBlast.ps.service.PsWorldLookup;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
