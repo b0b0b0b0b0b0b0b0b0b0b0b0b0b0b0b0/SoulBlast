@@ -1,15 +1,12 @@
 package bm.b0b0b0.SoulBlast.message;
 
 
-
 import bm.b0b0b0.SoulBlast.config.SerializerConfigs;
 
 import net.elytrium.serializer.language.object.YamlSerializable;
 
 
-
 public class MessagesConfig extends YamlSerializable {
-
 
 
     public MessagesConfig() {
@@ -19,37 +16,28 @@ public class MessagesConfig extends YamlSerializable {
     }
 
 
-
     public String prefix = "&8[&cSoulBlast&8] &r";
-
 
 
     public String noPermission = "{prefix}&cНет прав.";
 
 
-
     public String playerOnly = "{prefix}&cТолько для игрока.";
-
 
 
     public String unknownDynamite = "{prefix}&cДинамит &f{id} &cне найден.";
 
 
-
     public String dynamiteGiven = "{prefix}&aВыдан &f{id} &7x{amount} &aигроку &f{player}.";
-
 
 
     public String dynamiteReceived = "{prefix}&aВы получили &f{display} &7x{amount}.";
 
 
-
     public String reloadDone = "{prefix}&aКонфигурация перезагружена.";
 
 
-
     public String igniteDenied = "{prefix}&cЭтот динамит нельзя поджечь таким способом.";
-
 
 
     public String commandUsage = "{prefix}&7/soulblast give <игрок> <id> [кол-во] | menu | reload | rollback <ник> <радиус> <время> &8| &7/soulgrimoire";
@@ -69,7 +57,6 @@ public class MessagesConfig extends YamlSerializable {
     public String coreprotectRollbackCenter = "{prefix}&cНужна позиция&8: &7встань в центр кратера или пусть игрок онлайн.";
 
 
-
     public String goalSelected = "{prefix}&5В копилку&8: &f{display}";
 
     public String goalCleared = "{prefix}&7Копилка очищена.";
@@ -81,21 +68,16 @@ public class MessagesConfig extends YamlSerializable {
     public String autoIgniteOff = "{prefix}&7Поджиг&8: &fтолько от огнива";
 
 
-
     public String purchaseSuccess = "{prefix}&aОбмен совершён&8: &f{display}";
-
 
 
     public String purchaseFailed = "{prefix}&cОбмен не удался.";
 
 
-
     public String purchaseFailedMoney = "{prefix}&cНедостаточно монет.";
 
 
-
     public String purchaseFailedExperience = "{prefix}&cНедостаточно опыта.";
-
 
 
     public String purchaseFailedTnt = "{prefix}&cВ копилке не хватает TNT&8: &c{current}&8/&c{required}";
@@ -119,7 +101,6 @@ public class MessagesConfig extends YamlSerializable {
     public String copilkaTntFull = "{prefix}&aСклад TNT полный &8(&c{current}&8/&c{required}&7). &7Забрать заряд — &fЛКМ &7по копилке";
 
     public String tntDepositNone = "{prefix}&cНет обычного TNT в инвентаре.";
-
 
 
     public String tntDepositComplete = "{prefix}&aСклад TNT уже полный.";

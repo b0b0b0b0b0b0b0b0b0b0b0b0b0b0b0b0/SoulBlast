@@ -296,7 +296,7 @@ public final class PsExplosionBridge {
         if (state != null) {
             return types.resolve(state.typeAlias(), block);
         }
-        return types.resolveAlias(block).flatMap(alias -> types.findAlias(alias));
+        return types.resolveAlias(block).flatMap(types::findAlias);
     }
 
     private boolean isProtectionCandidate(Block block) {

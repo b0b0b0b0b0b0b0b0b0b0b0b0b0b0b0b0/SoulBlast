@@ -146,10 +146,7 @@ public final class SoulGrimoireMenuListener implements Listener {
         if (clicked == null) {
             return true;
         }
-        if (event.getRawSlot() < top.getSize() && clicked != top) {
-            return true;
-        }
-        return false;
+        return event.getRawSlot() < top.getSize() && clicked != top;
     }
 
     private void handleTopClick(InventoryClickEvent event, Player player, SoulGrimoireHolder holder) {
@@ -165,7 +162,8 @@ public final class SoulGrimoireMenuListener implements Listener {
             case DYNAMITE_ENTRY -> handleDynamiteEntry(player, holder, current, rightClick, leftClick);
             case GOAL_SLOT -> handleGoalSlot(player, holder, current, rightClick, leftClick);
             case PLAYER_SETTINGS -> toggleAutoIgnite(player, holder);
-            case PREVIOUS_PAGE -> menuService.navigate(holder, player, Math.max(0, holder.page() - 1), holder.sorting());
+            case PREVIOUS_PAGE ->
+                    menuService.navigate(holder, player, Math.max(0, holder.page() - 1), holder.sorting());
             case NEXT_PAGE -> menuService.navigate(holder, player, holder.page() + 1, holder.sorting());
             case SORT_CYCLE -> menuService.navigate(holder, player, 0, holder.sorting().next());
             default -> {

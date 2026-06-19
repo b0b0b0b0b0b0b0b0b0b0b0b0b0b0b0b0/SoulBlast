@@ -90,7 +90,7 @@ public final class PsBlockPersistence {
         return regionsFolder.resolve(PsRegionId.fileName(key));
     }
 
-    private void writeState(PsBlockState state) throws IOException {
+    private void writeState(PsBlockState state) {
         PsBlockRecord record = toRecord(state);
         record.save(regionPath(state.key()));
     }

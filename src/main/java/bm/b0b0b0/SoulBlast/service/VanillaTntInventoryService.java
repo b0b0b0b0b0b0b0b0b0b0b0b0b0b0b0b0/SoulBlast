@@ -1,6 +1,5 @@
 package bm.b0b0b0.SoulBlast.service;
 
-import bm.b0b0b0.SoulBlast.service.DynamiteItemFactory;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -36,7 +35,7 @@ public final class VanillaTntInventoryService {
             remaining -= takeFromSlot(inventory, slot, remaining);
         }
         if (remaining > 0) {
-            remaining -= takeFromHeld(inventory.getItemInOffHand(), taken -> inventory.setItemInOffHand(taken), remaining);
+            remaining -= takeFromHeld(inventory.getItemInOffHand(), inventory::setItemInOffHand, remaining);
         }
         if (remaining > 0) {
             remaining -= takeFromHeld(player.getItemOnCursor(), player::setItemOnCursor, remaining);
