@@ -43,7 +43,7 @@ public final class ExplosionRaySampler {
         int desiredRays = settings.samplingRayOverride > 0
                 ? settings.samplingRayOverride
                 : rayCount(settings);
-        progress.totalRays = Math.clamp(limits.maxSamplingRays(), 64, desiredRays);
+        progress.totalRays = Math.min(desiredRays, Math.max(64, limits.maxSamplingRays()));
         progress.nextRay = 0;
         progress.steps = Integer.MAX_VALUE;
     }
@@ -124,7 +124,7 @@ public final class ExplosionRaySampler {
         int desired = settings.algorithm.waveRayOverlayRays > 0
                 ? settings.algorithm.waveRayOverlayRays
                 : overlayRayCount(settings);
-        progress.totalRays = Math.clamp(limits.maxSamplingRays() / 2, 48, desired);
+        progress.totalRays = Math.min(desired, Math.max(48, limits.maxSamplingRays() / 2));
     }
 
     public int continueWaveOverlay(ExplosionJob job, ExplosionLimits limits, int stepBudget) {

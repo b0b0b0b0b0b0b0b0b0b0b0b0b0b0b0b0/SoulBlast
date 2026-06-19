@@ -248,7 +248,7 @@ public final class ExplosionLiquidSampler {
         int estimated = (int) Math.ceil((4.0 / 3.0) * Math.PI * radius * radius * radius);
         int floor = Math.max(1500, (int) (radius * radius * 14));
         int ceiling = Math.clamp((int) (radius * radius * 22), 24_000, 250_000);
-        return Math.clamp(floor, estimated, ceiling);
+        return Math.clamp(estimated, floor, ceiling);
     }
 
     public static boolean drainsLiquids(DynamiteDefinition dynamite) {

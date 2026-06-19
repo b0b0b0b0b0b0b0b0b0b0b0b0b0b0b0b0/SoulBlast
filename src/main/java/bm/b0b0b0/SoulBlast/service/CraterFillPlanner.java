@@ -437,7 +437,7 @@ public final class CraterFillPlanner {
     private static int clampY(World world, int y) {
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        return Math.clamp(maxY, minY, y);
+        return Math.clamp(y, minY, maxY);
     }
 
     private record FillColumn(int dx, int dz, double distSq) {

@@ -192,7 +192,7 @@ public final class ExplosionQueueService {
         if (multiplier <= 1.001f) {
             return baseBudget;
         }
-        return Math.clamp(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier),
+        return Math.clamp((int) (limits.maxBlocksPerExplosionTick() * multiplier), baseBudget,
                 limits.maxBlocksPerExplosionTick() * 2);
     }
 

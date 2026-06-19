@@ -56,7 +56,7 @@ public final class AdaptedRegionVolume implements RegionVolume {
     }
 
     private static int clamp(int value, int min, int max) {
-        return Math.clamp(max, min, value);
+        return Math.clamp(value, min, max);
     }
 
 }
