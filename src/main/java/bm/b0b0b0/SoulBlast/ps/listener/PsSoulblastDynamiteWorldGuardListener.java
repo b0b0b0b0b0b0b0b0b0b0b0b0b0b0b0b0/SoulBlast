@@ -41,12 +41,12 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         this.keys = keys;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH)
     public void allowInteractHigh(PlayerInteractEvent event) {
         allowInteract(event);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void allowInteractHighest(PlayerInteractEvent event) {
         allowInteract(event);
     }
@@ -61,12 +61,12 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH)
     public void allowBlockIgniteHigh(BlockIgniteEvent event) {
         allowBlockIgnite(event);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void allowBlockIgniteHighest(BlockIgniteEvent event) {
         allowBlockIgnite(event);
     }
@@ -77,12 +77,12 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH)
     public void allowPrimedSpawnHigh(EntitySpawnEvent event) {
         allowPrimedSpawn(event);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void allowPrimedSpawnHighest(EntitySpawnEvent event) {
         allowPrimedSpawn(event);
     }
@@ -96,7 +96,7 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void forceAllowInteract(PlayerInteractEvent event) {
         if (!interactDenied(event) || event.getClickedBlock() == null) {
             return;
@@ -107,7 +107,7 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void forceAllowBlockIgnite(BlockIgniteEvent event) {
         if (!event.isCancelled()) {
             return;
@@ -117,7 +117,7 @@ public final class PsSoulblastDynamiteWorldGuardListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void forceAllowPrimedSpawn(EntitySpawnEvent event) {
         if (!event.isCancelled() || !(event.getEntity() instanceof TNTPrimed primed)) {
             return;

@@ -52,7 +52,7 @@ public final class DynamitePlaceListener implements Listener {
         this.cooldownMessages = cooldownMessages;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlace(BlockPlaceEvent event) {
         String dynamiteId = itemFactory.readDynamiteId(event.getItemInHand());
         if (dynamiteId == null) {

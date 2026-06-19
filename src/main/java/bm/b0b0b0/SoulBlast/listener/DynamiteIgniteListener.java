@@ -101,7 +101,7 @@ public final class DynamiteIgniteListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH)
     public void onBlockIgnite(BlockIgniteEvent event) {
         Block block = event.getBlock();
         if (block.getType() != Material.TNT) {
