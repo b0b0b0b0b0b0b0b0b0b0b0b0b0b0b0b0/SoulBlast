@@ -6,7 +6,7 @@ public final class DecayCrackProgress {
     }
 
     public static float toClientProgress(float damage) {
-        return Math.max(0.0f, Math.min(1.0f, damage));
+        return Math.clamp(damage, 0.0f, 1.0f);
     }
 
 }

@@ -1,10 +1,6 @@
 package bm.b0b0b0.SoulBlast.ps.service;
 
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 
 import java.util.Locale;
 

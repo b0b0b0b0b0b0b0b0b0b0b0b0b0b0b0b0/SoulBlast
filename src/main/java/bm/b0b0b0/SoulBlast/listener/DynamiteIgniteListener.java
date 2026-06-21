@@ -2,10 +2,10 @@ package bm.b0b0b0.SoulBlast.listener;
 
 import bm.b0b0b0.SoulBlast.SoulBlast;
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
-import bm.b0b0b0.SoulBlast.ps.PsModule;
-import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
 import bm.b0b0b0.SoulBlast.config.IgnitionSettings;
 import bm.b0b0b0.SoulBlast.message.MessageService;
+import bm.b0b0b0.SoulBlast.ps.PsModule;
+import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
 import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
 import bm.b0b0b0.SoulBlast.service.DynamiteCooldownMessenger;
 import bm.b0b0b0.SoulBlast.service.DynamiteItemFactory;
@@ -101,7 +101,7 @@ public final class DynamiteIgniteListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGH)
     public void onBlockIgnite(BlockIgniteEvent event) {
         Block block = event.getBlock();
         if (block.getType() != Material.TNT) {

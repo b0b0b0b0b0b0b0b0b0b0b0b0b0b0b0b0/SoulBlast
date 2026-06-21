@@ -5,11 +5,7 @@ import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.ps.PsModule;
 import bm.b0b0b0.SoulBlast.ps.service.PsDurabilityTrace;
 import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
-import bm.b0b0b0.SoulBlast.service.DynamiteCooldownMessenger;
-import bm.b0b0b0.SoulBlast.service.DynamiteItemFactory;
-import bm.b0b0b0.SoulBlast.service.PlacedDynamiteTracker;
-import bm.b0b0b0.SoulBlast.service.PlayerProfileService;
-import bm.b0b0b0.SoulBlast.service.PrimedDynamiteService;
+import bm.b0b0b0.SoulBlast.service.*;
 import bm.b0b0b0.SoulBlast.service.region.RegionProtectionMessenger;
 import bm.b0b0b0.SoulBlast.service.region.RegionProtectionService;
 import org.bukkit.Location;
@@ -56,7 +52,7 @@ public final class DynamitePlaceListener implements Listener {
         this.cooldownMessages = cooldownMessages;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlace(BlockPlaceEvent event) {
         String dynamiteId = itemFactory.readDynamiteId(event.getItemInHand());
         if (dynamiteId == null) {

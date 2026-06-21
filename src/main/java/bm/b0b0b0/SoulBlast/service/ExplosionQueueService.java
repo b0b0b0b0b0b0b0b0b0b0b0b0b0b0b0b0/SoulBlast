@@ -2,14 +2,14 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.SoulBlast;
 import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
-import bm.b0b0b0.SoulBlast.ps.PsModule;
-import bm.b0b0b0.SoulBlast.ps.service.PsExplosionBridge;
 import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
 import bm.b0b0b0.SoulBlast.config.GeneralSettings;
 import bm.b0b0b0.SoulBlast.config.PluginConfig;
 import bm.b0b0b0.SoulBlast.model.ExplosionBlockAction;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.model.ExplosionJobPhase;
+import bm.b0b0b0.SoulBlast.ps.PsModule;
+import bm.b0b0b0.SoulBlast.ps.service.PsExplosionBridge;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
@@ -192,22 +192,18 @@ public final class ExplosionQueueService {
         if (multiplier <= 1.001f) {
             return baseBudget;
         }
-        return Math.min(
-                limits.maxBlocksPerExplosionTick() * 2,
-                Math.max(baseBudget, (int) (limits.maxBlocksPerExplosionTick() * multiplier))
-        );
+        return Math.clamp((int) (limits.maxBlocksPerExplosionTick() * multiplier), baseBudget,
+                limits.maxBlocksPerExplosionTick() * 2);
     }
 
     private int resolveTsarDrainBudget(int budget) {
         int share = Math.max(1, budget * 9 / 20);
         int floor = Math.max(0, general.griefLastPyreDrainBlocksPerTick);
-        if (floor <= 0) {
+        if (floor == 0) {
             return share;
         }
-        return Math.min(
-                limits.maxBlocksPerExplosionTick() * 2,
-                Math.max(share, floor)
-        );
+        return Math.clamp(share, floor,
+                limits.maxBlocksPerExplosionTick() * 2);
     }
 
     private void beginBlockSampling(ExplosionJob job) {

@@ -296,7 +296,7 @@ public final class PsExplosionBridge {
         if (state != null) {
             return types.resolve(state.typeAlias(), block);
         }
-        return types.resolveAlias(block).flatMap(alias -> types.findAlias(alias));
+        return types.resolveAlias(block).flatMap(types::findAlias);
     }
 
     private boolean isProtectionCandidate(Block block) {
@@ -463,17 +463,21 @@ public final class PsExplosionBridge {
     }
 
     private static Integer parseDamageValue(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        if (raw instanceof String text) {
-            try {
-                return Integer.parseInt(text.trim());
-            } catch (NumberFormatException exception) {
+        switch (raw) {
+            case null -> {
                 return null;
+            }
+            case Number number -> {
+                return number.intValue();
+            }
+            case String text -> {
+                try {
+                    return Integer.parseInt(text.trim());
+                } catch (NumberFormatException exception) {
+                    return null;
+                }
+            }
+            default -> {
             }
         }
         return null;

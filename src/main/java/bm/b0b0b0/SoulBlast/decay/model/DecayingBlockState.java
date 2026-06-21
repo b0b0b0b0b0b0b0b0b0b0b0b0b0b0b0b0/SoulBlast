@@ -48,7 +48,7 @@ public final class DecayingBlockState {
     }
 
     public void recordSentClientProgress(float progress) {
-        lastSentClientProgress = Math.max(0.0f, Math.min(1.0f, progress));
+        lastSentClientProgress = Math.clamp(progress, 0.0f, 1.0f);
     }
 
     public void resetClientProgress() {

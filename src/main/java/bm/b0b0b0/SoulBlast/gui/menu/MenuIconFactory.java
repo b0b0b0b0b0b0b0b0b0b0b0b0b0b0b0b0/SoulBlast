@@ -17,11 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public final class MenuIconFactory {
@@ -77,7 +73,7 @@ public final class MenuIconFactory {
         List<String> lore = definition.item.lore;
         placeholders.put("soul_desc_1", lore.isEmpty() ? "" : TextUtil.apply(lore.get(0), Map.of()));
         placeholders.put("soul_desc_2", lore.size() > 1 ? TextUtil.apply(lore.get(1), Map.of()) : "");
-        placeholders.put("soul_desc_gap", lore.size() > 2 ? "" : "");
+        placeholders.put("soul_desc_gap", "");
         placeholders.put("blast_power", String.format("%.1f", definition.explosion.power));
         placeholders.put("fuse_seconds", String.format("%.1f", definition.fuseTicks / 20.0));
         List<String> mergedLore = template.display.lore.stream()

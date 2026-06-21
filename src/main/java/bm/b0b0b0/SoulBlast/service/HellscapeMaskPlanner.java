@@ -128,7 +128,7 @@ public final class HellscapeMaskPlanner {
             double distSq,
             boolean passage
     ) {
-        int layers = Math.min(4, Math.max(2, fill.floorDepth / 4));
+        int layers = Math.clamp(fill.floorDepth / 4, 2, 4);
         for (int depth = 1; depth <= layers; depth++) {
             if (applied.size() >= maxOps) {
                 return;
@@ -206,7 +206,7 @@ public final class HellscapeMaskPlanner {
             Random random
     ) {
         double distNorm = distSq / Math.max(1.0, outerSq);
-        double accent = Math.min(0.46, Math.max(0.16, fill.hellFloorLavaRatio + 0.10));
+        double accent = Math.clamp(fill.hellFloorLavaRatio + 0.10, 0.16, 0.46);
         if (distSq <= innerSq * 0.35) {
             accent *= 0.78;
         } else if (distSq > innerSq) {
@@ -294,7 +294,7 @@ public final class HellscapeMaskPlanner {
     private static int clampY(World world, int y) {
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        return Math.max(minY, Math.min(maxY, y));
+        return Math.clamp(y, minY, maxY);
     }
 
 }

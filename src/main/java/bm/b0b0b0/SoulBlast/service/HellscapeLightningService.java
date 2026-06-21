@@ -37,7 +37,7 @@ public final class HellscapeLightningService {
         }
         float maxRadius = resolveLiquidRadius(job);
         int maxRing = Math.max(1, (int) Math.ceil(maxRadius));
-        int ring = Math.min(maxRing, Math.max(0, job.getTsarDrainRing()));
+        int ring = Math.clamp(job.getTsarDrainRing(), 0, maxRing);
         if (ring > maxRing) {
             return;
         }
@@ -49,10 +49,10 @@ public final class HellscapeLightningService {
             double angle = (Math.PI * 2.0 * index) / Math.max(1, bolts)
                     + random.nextDouble() * 0.9
                     + ring * 0.17;
-            double distance = ring <= 0
+            double distance = ring == 0
                     ? random.nextDouble() * 1.4
                     : ring + (random.nextDouble() - 0.5) * 0.85;
-            distance = Math.min(maxRadius, Math.max(0.0, distance));
+            distance = Math.clamp(distance, 0.0, maxRadius);
             double x = cx + Math.cos(angle) * distance;
             double z = cz + Math.sin(angle) * distance;
             Location strike = new Location(world, x, baseY + random.nextDouble() * 0.5, z);

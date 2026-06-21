@@ -8,12 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public final class ProtectionStonesBridge {
 
@@ -269,7 +264,7 @@ public final class ProtectionStonesBridge {
             if (ownerId == null) {
                 return true;
             }
-            return placerId == null || !ownerId.equals(placerId);
+            return !ownerId.equals(placerId);
         } catch (ReflectiveOperationException exception) {
             return false;
         }
@@ -358,7 +353,7 @@ public final class ProtectionStonesBridge {
         Material material = materialFromName(raw);
         if (material != null) {
             for (PsConfiguredBlockInfo block : listConfiguredBlocks()) {
-                if (material.equals(block.material())) {
+                if (material == block.material()) {
                     return block.alias();
                 }
             }

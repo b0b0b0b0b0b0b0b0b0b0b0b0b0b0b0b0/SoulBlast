@@ -10,7 +10,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 
 public final class HellscapeCenterMedallionService {
 
@@ -198,13 +197,13 @@ public final class HellscapeCenterMedallionService {
     }
 
     private static double clampRatio(double ratio) {
-        return Math.min(0.45, Math.max(0.05, ratio));
+        return Math.clamp(ratio, 0.05, 0.45);
     }
 
     private static int clampY(World world, int y) {
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight() - 1;
-        return Math.max(minY, Math.min(maxY, y));
+        return Math.clamp(y, minY, maxY);
     }
 
 }

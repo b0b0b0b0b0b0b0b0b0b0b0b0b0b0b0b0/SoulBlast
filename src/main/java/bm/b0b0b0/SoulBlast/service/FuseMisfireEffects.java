@@ -2,12 +2,7 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.FuseMisfireSettings;
 import bm.b0b0b0.SoulBlast.util.ColorUtil;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Registry;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 
 import java.util.Locale;
 

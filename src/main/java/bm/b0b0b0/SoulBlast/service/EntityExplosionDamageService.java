@@ -2,8 +2,8 @@ package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.EntityExplosionEntry;
 import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
-import bm.b0b0b0.SoulBlast.util.BukkitKeys;
 import bm.b0b0b0.SoulBlast.config.PluginConfig;
+import bm.b0b0b0.SoulBlast.util.BukkitKeys;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;

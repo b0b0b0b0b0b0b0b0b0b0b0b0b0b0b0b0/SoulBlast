@@ -8,12 +8,13 @@ import bm.b0b0b0.SoulBlast.util.BukkitKeys;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class BlastResistanceService {
 
-    private final Map<Material, Float> materialResistance = new HashMap<>();
+    private final Map<Material, Float> materialResistance = new EnumMap<>(Material.class);
     private final Map<String, MaterialGroupDefinition> groups = new HashMap<>();
 
     public void reload(PluginConfig config, MaterialGroupsFileConfig materialGroupsConfig) {

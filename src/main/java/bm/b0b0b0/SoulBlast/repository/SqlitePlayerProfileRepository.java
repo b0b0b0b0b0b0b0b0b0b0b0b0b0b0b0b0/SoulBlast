@@ -5,12 +5,7 @@ import bm.b0b0b0.SoulBlast.model.PlayerProfile;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -51,7 +46,7 @@ public final class SqlitePlayerProfileRepository implements PlayerProfileReposit
 
     @Override
     public void shutdown() {
-        executor.execute(() -> closeConnection());
+        executor.execute(this::closeConnection);
         executor.shutdown();
     }
 
@@ -112,12 +107,12 @@ public final class SqlitePlayerProfileRepository implements PlayerProfileReposit
             connection.setAutoCommit(false);
             try (PreparedStatement statement = connection.prepareStatement(
                     """
-                    INSERT INTO player_profiles (uuid, auto_ignite, goal_dynamite_id)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(uuid) DO UPDATE SET
-                        auto_ignite = excluded.auto_ignite,
-                        goal_dynamite_id = excluded.goal_dynamite_id
-                    """
+                            INSERT INTO player_profiles (uuid, auto_ignite, goal_dynamite_id)
+                            VALUES (?, ?, ?)
+                            ON CONFLICT(uuid) DO UPDATE SET
+                                auto_ignite = excluded.auto_ignite,
+                                goal_dynamite_id = excluded.goal_dynamite_id
+                            """
             )) {
                 statement.setString(1, profile.uuid().toString());
                 statement.setInt(2, profile.autoIgnite() ? 1 : 0);

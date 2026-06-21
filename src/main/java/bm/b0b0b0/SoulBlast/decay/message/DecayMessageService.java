@@ -40,7 +40,7 @@ public final class DecayMessageService {
     }
 
     public static Map<String, String> percentPlaceholders(int percent) {
-        return Map.of("percent", Integer.toString(Math.max(0, Math.min(100, percent))));
+        return Map.of("percent", Integer.toString(Math.clamp(percent, 0, 100)));
     }
 
     public static Map<String, String> materialPlaceholders(String materialLabel) {

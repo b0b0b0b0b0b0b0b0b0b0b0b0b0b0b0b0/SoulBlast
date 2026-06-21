@@ -115,8 +115,7 @@ public final class PsHologramVisibilityService {
             return true;
         }
         String ownerName = snapshot.ownerName();
-        return ownerName != null
-                && !"?".equals(ownerName)
+        return !"?".equals(ownerName)
                 && playerName != null
                 && playerName.equalsIgnoreCase(ownerName);
     }
