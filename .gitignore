@@ -1,3 +1,7 @@
-*.iml
-.idea/
 .gradle/
+build/
+run/
+.idea/
+.DS_Store
+Thumbs.db
+.gitignore
