@@ -6,6 +6,9 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -13,32 +16,32 @@ import java.util.*;
 public final class ProtectionStonesBridge {
 
     private final boolean available;
-    private final Method regionFromLocation;
-    private final Method regionFromLocationGroup;
-    private final Method regionGetType;
-    private final Method regionGetTypeOptions;
-    private final Method regionGetOwners;
-    private final Method regionGetProtectBlock;
-    private final Method regionDelete;
-    private final Method psGetInstance;
-    private final Method psGetConfiguredBlocks;
-    private final Method psIsProtectBlock;
-    private final Method blockUtilGetProtectBlockType;
+    private final MethodHandle regionFromLocation;
+    private final MethodHandle regionFromLocationGroup;
+    private final MethodHandle regionGetType;
+    private final MethodHandle regionGetTypeOptions;
+    private final MethodHandle regionGetOwners;
+    private final MethodHandle regionGetProtectBlock;
+    private final MethodHandle regionDelete;
+    private final MethodHandle psGetInstance;
+    private final MethodHandle psGetConfiguredBlocks;
+    private final MethodHandle psIsProtectBlock;
+    private final MethodHandle blockUtilGetProtectBlockType;
     private final Class<?> protectBlockClass;
 
     private ProtectionStonesBridge(
             boolean available,
-            Method regionFromLocation,
-            Method regionFromLocationGroup,
-            Method regionGetType,
-            Method regionGetTypeOptions,
-            Method regionGetOwners,
-            Method regionGetProtectBlock,
-            Method regionDelete,
-            Method psGetInstance,
-            Method psGetConfiguredBlocks,
-            Method psIsProtectBlock,
-            Method blockUtilGetProtectBlockType,
+            MethodHandle regionFromLocation,
+            MethodHandle regionFromLocationGroup,
+            MethodHandle regionGetType,
+            MethodHandle regionGetTypeOptions,
+            MethodHandle regionGetOwners,
+            MethodHandle regionGetProtectBlock,
+            MethodHandle regionDelete,
+            MethodHandle psGetInstance,
+            MethodHandle psGetConfiguredBlocks,
+            MethodHandle psIsProtectBlock,
+            MethodHandle blockUtilGetProtectBlockType,
             Class<?> protectBlockClass
     ) {
         this.available = available;
@@ -65,19 +68,25 @@ public final class ProtectionStonesBridge {
             Class<?> psClass = Class.forName("dev.espi.protectionstones.ProtectionStones");
             Class<?> protectBlockClass = Class.forName("dev.espi.protectionstones.PSProtectBlock");
             Class<?> blockUtilClass = Class.forName("dev.espi.protectionstones.utils.BlockUtil");
+            MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+            MethodHandle getTypeOptions = lookup.findVirtual(
+                    regionClass,
+                    "getTypeOptions",
+                    MethodType.methodType(protectBlockClass)
+            );
             return new ProtectionStonesBridge(
                     true,
-                    regionClass.getMethod("fromLocation", Location.class),
-                    regionClass.getMethod("fromLocationGroup", Location.class),
-                    regionGetTypeMethod(regionClass),
-                    regionClass.getMethod("getTypeOptions"),
-                    regionClass.getMethod("getOwners"),
-                    regionClass.getMethod("getProtectBlock"),
-                    regionClass.getMethod("deleteRegion", boolean.class),
-                    psClass.getMethod("getInstance"),
-                    psClass.getMethod("getConfiguredBlocks"),
-                    psClass.getMethod("isProtectBlock", Block.class),
-                    blockUtilClass.getMethod("getProtectBlockType", Block.class),
+                    lookup.findStatic(regionClass, "fromLocation", MethodType.methodType(regionClass, Location.class)),
+                    lookup.findStatic(regionClass, "fromLocationGroup", MethodType.methodType(regionClass, Location.class)),
+                    regionGetTypeHandle(lookup, regionClass, getTypeOptions),
+                    getTypeOptions,
+                    regionGetOwnersHandle(lookup, regionClass),
+                    lookup.findVirtual(regionClass, "getProtectBlock", MethodType.methodType(Block.class)),
+                    lookup.findVirtual(regionClass, "deleteRegion", MethodType.methodType(boolean.class, boolean.class)),
+                    lookup.findStatic(psClass, "getInstance", MethodType.methodType(psClass)),
+                    lookup.findVirtual(psClass, "getConfiguredBlocks", MethodType.methodType(List.class)),
+                    lookup.findStatic(psClass, "isProtectBlock", MethodType.methodType(boolean.class, Block.class)),
+                    lookup.findStatic(blockUtilClass, "getProtectBlockType", MethodType.methodType(String.class, Block.class)),
                     protectBlockClass
             );
         } catch (Throwable failure) {
@@ -85,11 +94,30 @@ public final class ProtectionStonesBridge {
         }
     }
 
-    private static Method regionGetTypeMethod(Class<?> regionClass) throws NoSuchMethodException {
+    private static MethodHandle regionGetOwnersHandle(
+            MethodHandles.Lookup lookup,
+            Class<?> regionClass
+    ) throws ReflectiveOperationException {
+        ReflectiveOperationException lastFailure = null;
+        for (Class<?> returnType : List.of(ArrayList.class, List.class, Collection.class)) {
+            try {
+                return lookup.findVirtual(regionClass, "getOwners", MethodType.methodType(returnType));
+            } catch (ReflectiveOperationException exception) {
+                lastFailure = exception;
+            }
+        }
+        throw lastFailure;
+    }
+
+    private static MethodHandle regionGetTypeHandle(
+            MethodHandles.Lookup lookup,
+            Class<?> regionClass,
+            MethodHandle fallback
+    ) {
         try {
-            return regionClass.getMethod("getType");
-        } catch (NoSuchMethodException exception) {
-            return regionClass.getMethod("getTypeOptions");
+            return lookup.findVirtual(regionClass, "getType", MethodType.methodType(String.class));
+        } catch (ReflectiveOperationException exception) {
+            return fallback;
         }
     }
 
@@ -120,7 +148,7 @@ public final class ProtectionStonesBridge {
             return Collections.emptyList();
         }
         try {
-            Object instance = psGetInstance.invoke(null);
+            Object instance = psGetInstance.invoke();
             if (instance == null) {
                 return Collections.emptyList();
             }
@@ -141,7 +169,7 @@ public final class ProtectionStonesBridge {
                 result.add(new PsConfiguredBlockInfo(alias, material));
             }
             return List.copyOf(result);
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Collections.emptyList();
         }
     }
@@ -151,7 +179,7 @@ public final class ProtectionStonesBridge {
             return Optional.empty();
         }
         try {
-            Object instance = psGetInstance.invoke(null);
+            Object instance = psGetInstance.invoke();
             if (instance == null) {
                 return Optional.empty();
             }
@@ -168,7 +196,7 @@ public final class ProtectionStonesBridge {
                     return Optional.ofNullable(readStringField(blockType, "alias"));
                 }
             }
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Optional.empty();
         }
         return Optional.empty();
@@ -179,12 +207,12 @@ public final class ProtectionStonesBridge {
             return Optional.empty();
         }
         try {
-            Object region = regionFromLocation.invoke(null, location);
+            Object region = regionFromLocation.invoke(location);
             if (region == null && regionFromLocationGroup != null) {
-                region = regionFromLocationGroup.invoke(null, location);
+                region = regionFromLocationGroup.invoke(location);
             }
             return snapshotFromRegion(region);
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Optional.empty();
         }
     }
@@ -194,8 +222,8 @@ public final class ProtectionStonesBridge {
             return false;
         }
         try {
-            return Boolean.TRUE.equals(psIsProtectBlock.invoke(null, block));
-        } catch (ReflectiveOperationException exception) {
+            return Boolean.TRUE.equals(psIsProtectBlock.invoke(block));
+        } catch (Throwable failure) {
             return false;
         }
     }
@@ -205,9 +233,9 @@ public final class ProtectionStonesBridge {
             return Optional.empty();
         }
         try {
-            Object region = regionFromLocation.invoke(null, location);
+            Object region = regionFromLocation.invoke(location);
             if (region == null && regionFromLocationGroup != null) {
-                region = regionFromLocationGroup.invoke(null, location);
+                region = regionFromLocationGroup.invoke(location);
             }
             if (region == null) {
                 return Optional.empty();
@@ -217,7 +245,7 @@ public final class ProtectionStonesBridge {
                 return Optional.empty();
             }
             return Optional.of(protectBlock);
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Optional.empty();
         }
     }
@@ -230,9 +258,9 @@ public final class ProtectionStonesBridge {
             return false;
         }
         try {
-            Object region = regionFromLocation.invoke(null, center);
+            Object region = regionFromLocation.invoke(center);
             if (region == null && regionFromLocationGroup != null) {
-                region = regionFromLocationGroup.invoke(null, center);
+                region = regionFromLocationGroup.invoke(center);
             }
             if (region == null) {
                 return false;
@@ -242,7 +270,7 @@ public final class ProtectionStonesBridge {
                     && linked.getX() == protectBlock.getX()
                     && linked.getY() == protectBlock.getY()
                     && linked.getZ() == protectBlock.getZ();
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return false;
         }
     }
@@ -256,7 +284,7 @@ public final class ProtectionStonesBridge {
             return false;
         }
         try {
-            Object region = regionFromLocation.invoke(null, location);
+            Object region = regionFromLocation.invoke(location);
             if (region == null) {
                 return false;
             }
@@ -265,7 +293,7 @@ public final class ProtectionStonesBridge {
                 return true;
             }
             return !ownerId.equals(placerId);
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return false;
         }
     }
@@ -275,13 +303,13 @@ public final class ProtectionStonesBridge {
             return false;
         }
         try {
-            Object region = regionFromLocation.invoke(null, block.getLocation());
+            Object region = regionFromLocation.invoke(block.getLocation());
             if (region == null) {
                 return false;
             }
             regionDelete.invoke(region, false);
             return true;
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return false;
         }
     }
@@ -293,7 +321,7 @@ public final class ProtectionStonesBridge {
         try {
             Method getRegion = event.getClass().getMethod("getRegion");
             return getRegion.invoke(event);
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return null;
         }
     }
@@ -318,7 +346,7 @@ public final class ProtectionStonesBridge {
             int radiusY = readRadius(typeOptions, "yRadius");
             int radiusZ = readRadius(typeOptions, "zRadius");
             return Optional.of(new PsRegionSnapshot(alias, ownerId, "?", radiusX, radiusY, radiusZ));
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Optional.empty();
         }
     }
@@ -328,14 +356,14 @@ public final class ProtectionStonesBridge {
             return Optional.empty();
         }
         try {
-            if (!(Boolean) psIsProtectBlock.invoke(null, block)) {
+            if (!(Boolean) psIsProtectBlock.invoke(block)) {
                 return Optional.empty();
             }
-            String alias = (String) blockUtilGetProtectBlockType.invoke(null, block);
+            String alias = (String) blockUtilGetProtectBlockType.invoke(block);
             if (alias != null && !alias.isBlank()) {
                 return Optional.of(alias);
             }
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return Optional.empty();
         }
         return aliasForMaterial(block.getType());
@@ -361,7 +389,7 @@ public final class ProtectionStonesBridge {
         return raw;
     }
 
-    private String resolveAlias(Object region) throws ReflectiveOperationException {
+    private String resolveAlias(Object region) throws Throwable {
         Object typeResult = regionGetType.invoke(region);
         if (typeResult instanceof String alias) {
             return alias;
@@ -398,7 +426,7 @@ public final class ProtectionStonesBridge {
             if (block instanceof Block resolved) {
                 return resolved;
             }
-        } catch (ReflectiveOperationException exception) {
+        } catch (Throwable failure) {
             return null;
         }
         return null;
@@ -412,7 +440,7 @@ public final class ProtectionStonesBridge {
         }
     }
 
-    private UUID resolveOwner(Object region) throws ReflectiveOperationException {
+    private UUID resolveOwner(Object region) throws Throwable {
         Object owners = regionGetOwners.invoke(region);
         if (!(owners instanceof Collection<?> collection) || collection.isEmpty()) {
             return null;

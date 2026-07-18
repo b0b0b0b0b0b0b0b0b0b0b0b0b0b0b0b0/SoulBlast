@@ -106,19 +106,7 @@ public final class PsLifecycleListener {
     }
 
     private Block resolveBlock(Object region) {
-        if (region == null) {
-            return null;
-        }
-        try {
-            Method getProtectBlock = region.getClass().getMethod("getProtectBlock");
-            Object block = getProtectBlock.invoke(region);
-            if (block instanceof Block resolved) {
-                return resolved;
-            }
-        } catch (ReflectiveOperationException exception) {
-            return null;
-        }
-        return null;
+        return bridge.protectBlockFromRegion(region);
     }
 
     private Player resolvePlayer(Event event) {
@@ -131,7 +119,7 @@ public final class PsLifecycleListener {
             if (player instanceof Player resolved) {
                 return resolved;
             }
-        } catch (ReflectiveOperationException ignored) {
+        } catch (Throwable ignored) {
         }
         return null;
     }
