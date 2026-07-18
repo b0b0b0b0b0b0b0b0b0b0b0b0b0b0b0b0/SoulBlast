@@ -4,29 +4,19 @@ import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
 import bm.b0b0b0.SoulBlast.gui.MenuItemGuard;
 import bm.b0b0b0.SoulBlast.gui.holder.SoulGrimoireHolder;
 import bm.b0b0b0.SoulBlast.gui.menu.MenuIconType;
-import bm.b0b0b0.SoulBlast.gui.menu.MenuSortingType;
 import bm.b0b0b0.SoulBlast.gui.menu.SoulGrimoireMenuService;
 import bm.b0b0b0.SoulBlast.message.MessageService;
 import bm.b0b0b0.SoulBlast.model.PlayerProfile;
 import bm.b0b0b0.SoulBlast.repository.DynamiteRegistry;
-import bm.b0b0b0.SoulBlast.service.DynamiteCooldownMessenger;
-import bm.b0b0b0.SoulBlast.service.DynamiteCooldownService;
-import bm.b0b0b0.SoulBlast.service.DynamiteItemFactory;
-import bm.b0b0b0.SoulBlast.service.DynamitePurchaseService;
+import bm.b0b0b0.SoulBlast.service.*;
 import bm.b0b0b0.SoulBlast.service.DynamitePurchaseService.PurchasePreview;
-import bm.b0b0b0.SoulBlast.service.PlayerProfileService;
-import bm.b0b0b0.SoulBlast.service.VanillaTntInventoryService;
 import bm.b0b0b0.SoulBlast.util.PluginKeys;
 import bm.b0b0b0.SoulBlast.util.TextUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -156,10 +146,7 @@ public final class SoulGrimoireMenuListener implements Listener {
         if (clicked == null) {
             return true;
         }
-        if (event.getRawSlot() < top.getSize() && clicked != top) {
-            return true;
-        }
-        return false;
+        return event.getRawSlot() < top.getSize() && clicked != top;
     }
 
     private void handleTopClick(InventoryClickEvent event, Player player, SoulGrimoireHolder holder) {
@@ -175,7 +162,8 @@ public final class SoulGrimoireMenuListener implements Listener {
             case DYNAMITE_ENTRY -> handleDynamiteEntry(player, holder, current, rightClick, leftClick);
             case GOAL_SLOT -> handleGoalSlot(player, holder, current, rightClick, leftClick);
             case PLAYER_SETTINGS -> toggleAutoIgnite(player, holder);
-            case PREVIOUS_PAGE -> menuService.navigate(holder, player, Math.max(0, holder.page() - 1), holder.sorting());
+            case PREVIOUS_PAGE ->
+                    menuService.navigate(holder, player, Math.max(0, holder.page() - 1), holder.sorting());
             case NEXT_PAGE -> menuService.navigate(holder, player, holder.page() + 1, holder.sorting());
             case SORT_CYCLE -> menuService.navigate(holder, player, 0, holder.sorting().next());
             default -> {

@@ -1,10 +1,6 @@
 package bm.b0b0b0.SoulBlast.service;
 
-import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
-import bm.b0b0b0.SoulBlast.config.PlayerCooldownDynamiteOverride;
-import bm.b0b0b0.SoulBlast.config.PlayerCooldownSettings;
-import bm.b0b0b0.SoulBlast.config.PlayerCooldownTier;
-import bm.b0b0b0.SoulBlast.config.PurchaseSettings;
+import bm.b0b0b0.SoulBlast.config.*;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -43,9 +39,7 @@ public final class DynamiteCooldownService {
     public void reload(PlayerCooldownSettings settings) {
         this.settings = settings == null ? new PlayerCooldownSettings() : settings;
         List<PlayerCooldownTier> tiers = new ArrayList<>();
-        for (PlayerCooldownTier tier : this.settings.tiers) {
-            tiers.add(tier);
-        }
+        tiers.addAll(this.settings.tiers);
         tiers.sort((a, b) -> Float.compare(b.minRadius, a.minRadius));
         this.sortedTiers = List.copyOf(tiers);
     }

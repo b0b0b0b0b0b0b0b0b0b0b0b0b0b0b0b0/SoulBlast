@@ -8,7 +8,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -146,7 +145,7 @@ public final class PsRegionAllowanceListener implements Listener {
     }
 
     private void uncancelIfProtectedRegion(Cancellable event, org.bukkit.Location location) {
-        if (!bridge.snapshotAt(location).isPresent()) {
+        if (bridge.snapshotAt(location).isEmpty()) {
             return;
         }
         event.setCancelled(false);

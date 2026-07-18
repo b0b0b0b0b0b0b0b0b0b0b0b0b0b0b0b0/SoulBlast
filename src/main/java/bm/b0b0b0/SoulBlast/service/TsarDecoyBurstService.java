@@ -36,7 +36,7 @@ public final class TsarDecoyBurstService {
         }
         float radius = resolveLiquidRadius(job);
         int maxRing = Math.max(1, (int) Math.ceil(radius));
-        int ring = Math.min(maxRing, Math.max(1, job.getTsarDrainRing()));
+        int ring = Math.clamp(job.getTsarDrainRing(), 1, maxRing);
         double wave = ring / (double) maxRing;
         if (wave > 0.88) {
             return;

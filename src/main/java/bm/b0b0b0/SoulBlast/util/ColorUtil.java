@@ -42,7 +42,7 @@ public final class ColorUtil {
     }
 
     private static int clamp(int value) {
-        return Math.max(0, Math.min(255, value));
+        return Math.clamp(value, 0, 255);
     }
 
     public record RgbColor(int red, int green, int blue) {

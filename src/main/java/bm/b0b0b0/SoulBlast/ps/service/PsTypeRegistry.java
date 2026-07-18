@@ -1,12 +1,12 @@
 package bm.b0b0b0.SoulBlast.ps.service;
 
 import bm.b0b0b0.SoulBlast.ps.config.PsProtectionTypeDefinition;
-import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -14,7 +14,7 @@ public final class PsTypeRegistry {
 
     private final ProtectionStonesBridge bridge;
     private Map<String, PsProtectionTypeDefinition> byAlias = Map.of();
-    private final Map<Material, String> aliasByMaterial = new HashMap<>();
+    private final Map<Material, String> aliasByMaterial = new EnumMap<>(Material.class);
 
     public PsTypeRegistry(ProtectionStonesBridge bridge) {
         this.bridge = bridge;

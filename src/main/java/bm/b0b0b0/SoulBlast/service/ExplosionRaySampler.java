@@ -1,9 +1,8 @@
 package bm.b0b0b0.SoulBlast.service;
 
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
-import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
 import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
-import bm.b0b0b0.SoulBlast.config.GeneralSettings;
+import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.model.ExplosionRaySamplingProgress;
 import bm.b0b0b0.SoulBlast.util.BlockCoordPacker;
@@ -266,7 +265,7 @@ public final class ExplosionRaySampler {
     private int maxRaySteps(ExplosionSettings settings, double step) {
         int alongRadius = (int) Math.ceil(settings.radius / step);
         int cap = "EXTREME".equalsIgnoreCase(settings.quality) ? 480 : 160;
-        return Math.min(cap, Math.max(64, alongRadius * 8));
+        return Math.clamp(alongRadius * 8L, 64, cap);
     }
 
     private int rayCount(ExplosionSettings settings) {

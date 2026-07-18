@@ -1,10 +1,6 @@
 package bm.b0b0b0.SoulBlast.service;
 
-import bm.b0b0b0.SoulBlast.config.DynamiteDefinition;
-import bm.b0b0b0.SoulBlast.config.ExplosionEffectsSettings;
-import bm.b0b0b0.SoulBlast.config.ExplosionLimits;
-import bm.b0b0b0.SoulBlast.config.ExplosionSettings;
-import bm.b0b0b0.SoulBlast.config.GeneralSettings;
+import bm.b0b0b0.SoulBlast.config.*;
 import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
 import bm.b0b0b0.SoulBlast.model.ExplosionBlockAction;
 import bm.b0b0b0.SoulBlast.model.ExplosionJob;
@@ -251,8 +247,8 @@ public final class ExplosionLiquidSampler {
         }
         int estimated = (int) Math.ceil((4.0 / 3.0) * Math.PI * radius * radius * radius);
         int floor = Math.max(1500, (int) (radius * radius * 14));
-        int ceiling = Math.min(250_000, Math.max(24_000, (int) (radius * radius * 22)));
-        return Math.min(ceiling, Math.max(floor, estimated));
+        int ceiling = Math.clamp((int) (radius * radius * 22), 24_000, 250_000);
+        return Math.clamp(estimated, floor, ceiling);
     }
 
     public static boolean drainsLiquids(DynamiteDefinition dynamite) {

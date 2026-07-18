@@ -1,8 +1,8 @@
 package bm.b0b0b0.SoulBlast.ps.service;
 
 import bm.b0b0b0.SoulBlast.ps.config.PsSettings;
-import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import bm.b0b0b0.SoulBlast.ps.integration.ProtectionStonesBridge;
+import bm.b0b0b0.SoulBlast.ps.integration.PsConfiguredBlockInfo;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;

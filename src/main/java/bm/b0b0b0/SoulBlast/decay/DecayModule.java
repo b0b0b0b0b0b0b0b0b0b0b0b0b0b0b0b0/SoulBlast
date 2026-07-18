@@ -1,27 +1,14 @@
 package bm.b0b0b0.SoulBlast.decay;
 
 import bm.b0b0b0.SoulBlast.SoulBlast;
-import bm.b0b0b0.SoulBlast.decay.config.DecayBlocksFileConfig;
-import bm.b0b0b0.SoulBlast.decay.config.DecayConfigLoader;
-import bm.b0b0b0.SoulBlast.decay.config.DecayDamageSourcesFileConfig;
-import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralFileConfig;
-import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralSettings;
-import bm.b0b0b0.SoulBlast.decay.config.DecayMessagesFileConfig;
+import bm.b0b0b0.SoulBlast.decay.config.*;
 import bm.b0b0b0.SoulBlast.decay.gui.DecayBlocksMenuService;
-import bm.b0b0b0.SoulBlast.decay.config.DecayManualRepairSettings;
 import bm.b0b0b0.SoulBlast.decay.listener.DecayBlocksMenuListener;
 import bm.b0b0b0.SoulBlast.decay.listener.DecayManualRepairListener;
 import bm.b0b0b0.SoulBlast.decay.listener.DecayProtectionListener;
 import bm.b0b0b0.SoulBlast.decay.message.DecayMessageService;
 import bm.b0b0b0.SoulBlast.decay.repository.DecayingBlockStore;
-import bm.b0b0b0.SoulBlast.decay.service.DecayBlockBreaker;
-import bm.b0b0b0.SoulBlast.decay.service.DecayBlockRegistry;
-import bm.b0b0b0.SoulBlast.decay.service.DecayCrackBroadcaster;
-import bm.b0b0b0.SoulBlast.decay.service.DecayDamageResolver;
-import bm.b0b0b0.SoulBlast.decay.service.DecayExplosionBridge;
-import bm.b0b0b0.SoulBlast.decay.service.DecayManualRepairService;
-import bm.b0b0b0.SoulBlast.decay.service.DecayRegenerationService;
-import bm.b0b0b0.SoulBlast.decay.service.DecayTickService;
+import bm.b0b0b0.SoulBlast.decay.service.*;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class DecayModule {

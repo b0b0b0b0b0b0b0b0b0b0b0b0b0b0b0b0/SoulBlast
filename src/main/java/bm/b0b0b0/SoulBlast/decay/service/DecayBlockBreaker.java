@@ -6,7 +6,6 @@ import bm.b0b0b0.SoulBlast.service.ExplosionContainerBreak;
 import bm.b0b0b0.SoulBlast.util.BukkitKeys;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.inventory.ItemStack;
 
 public final class DecayBlockBreaker {
 

@@ -4,9 +4,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class TextUtil {
+
+    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)&#[0-9a-f]{6}");
+    private static final Pattern COLOR_PATTERN = Pattern.compile("(?i)[&§][0-9a-fk-or]");
 
     private TextUtil() {
     }
@@ -52,8 +56,7 @@ public final class TextUtil {
         if (input == null) {
             return "";
         }
-        return input.replaceAll("(?i)&#[0-9a-f]{6}", "")
-                .replaceAll("(?i)[&§][0-9a-fk-or]", "");
+        return COLOR_PATTERN.matcher(HEX_PATTERN.matcher(input).replaceAll("")).replaceAll("");
     }
 
 }

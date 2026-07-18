@@ -12,16 +12,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.event.Listener;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.lang.reflect.Method;
 
@@ -148,16 +148,13 @@ public final class WorldGuardSoulblastEventBridge {
                 return false;
             }
         }
-        if (original instanceof PlayerInteractEvent interact) {
-            return resolveInteractSoulblast(interact);
-        }
-        if (original instanceof BlockIgniteEvent ignite) {
-            return resolvePlacedSoulblast(ignite.getBlock());
-        }
-        if (original instanceof EntitySpawnEvent spawn && spawn.getEntity() instanceof TNTPrimed primed) {
-            return resolvePrimedSoulblast(primed);
-        }
-        return false;
+        return switch (original) {
+            case PlayerInteractEvent interact -> resolveInteractSoulblast(interact);
+            case BlockIgniteEvent ignite -> resolvePlacedSoulblast(ignite.getBlock());
+            case EntitySpawnEvent spawn when spawn.getEntity() instanceof TNTPrimed primed ->
+                    resolvePrimedSoulblast(primed);
+            default -> false;
+        };
     }
 
     private boolean resolveInteractSoulblast(PlayerInteractEvent event) {

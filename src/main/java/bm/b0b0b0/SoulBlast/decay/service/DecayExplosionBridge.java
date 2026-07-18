@@ -2,15 +2,15 @@ package bm.b0b0b0.SoulBlast.decay.service;
 
 import bm.b0b0b0.SoulBlast.config.BlockExplosionRule;
 import bm.b0b0b0.SoulBlast.config.ExplosionAlgorithmSettings;
-import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
-import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import bm.b0b0b0.SoulBlast.decay.config.DecayBlockTypeDefinition;
 import bm.b0b0b0.SoulBlast.decay.config.DecayGeneralSettings;
 import bm.b0b0b0.SoulBlast.decay.model.DecayingBlockKey;
 import bm.b0b0b0.SoulBlast.decay.model.DecayingBlockState;
 import bm.b0b0b0.SoulBlast.decay.repository.DecayingBlockStore;
-import org.bukkit.Location;
+import bm.b0b0b0.SoulBlast.integration.coreprotect.CoreProtectBridge;
+import bm.b0b0b0.SoulBlast.model.ExplosionJob;
 import org.bukkit.block.Block;
+
 import java.util.Optional;
 
 public final class DecayExplosionBridge {
